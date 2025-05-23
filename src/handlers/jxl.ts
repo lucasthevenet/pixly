@@ -6,8 +6,8 @@ import {
   isRunningInNode,
 } from "../utils/environment";
 
-const JXL_ENC_WASM = "node_modules/@jsquash/jxl/codec/enc/squoosh_jxl_enc.wasm";
-const JXL_DEC_WASM = "node_modules/@jsquash/jxl/codec/dec/squoosh_jxl_dec.wasm";
+const JXL_ENC_WASM = "node_modules/@jsquash/jxl/codec/enc/jxl_enc.wasm";
+const JXL_DEC_WASM = "node_modules/@jsquash/jxl/codec/dec/jxl_dec.wasm";
 
 export const JxlHandler: ImageHandler = {
   async decode(buffer) {

@@ -35,8 +35,6 @@ export interface OutputOptions extends TransformOptions {
 
 export interface ProcessingConfig {
   decoder?: "auto" | MimeType;
-  encoder?: MimeType;
-  quality?: number;
   preserveMetadata?: boolean;
 }
 
@@ -261,7 +259,7 @@ export const encodeProcessor = async (
   processor: ImageProcessor,
   opts: OutputOptions,
 ): Promise<Uint8Array> => {
-  const format = processor.config.encoder || opts.format;
+  const format = opts.format;
   const handler = typeHandlers[format];
 
   if (!handler || !processor.bitmap) {
@@ -271,7 +269,6 @@ export const encodeProcessor = async (
   const encodeOptions = {
     width: processor.bitmap.width,
     height: processor.bitmap.height,
-    quality: processor.config.quality,
     ...opts,
   };
 
@@ -292,7 +289,7 @@ export const toBlob = async (
   opts: OutputOptions,
 ): Promise<Blob> => {
   const buffer = await toBuffer(processor, opts);
-  const format = processor.config.encoder || opts.format;
+  const format = opts.format;
   return new Blob([buffer], { type: format });
 };
 
@@ -301,7 +298,7 @@ export const toDataURL = async (
   opts: OutputOptions,
 ): Promise<string> => {
   const buffer = await toBuffer(processor, opts);
-  const format = processor.config.encoder || opts.format;
+  const format = opts.format;
   const base64 = btoa(String.fromCharCode(...buffer));
   return `data:${format};base64,${base64}`;
 };

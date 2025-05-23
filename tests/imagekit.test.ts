@@ -25,7 +25,7 @@ import {
   type ProcessingConfig,
   type PipelineTemplate,
 } from "../src/index";
-import { getTestImage } from "./utils";
+import { getTestImage, saveTestImage } from "./utils";
 
 it("API surface - should handle invalid input types gracefully", async () => {
   // @ts-expect-error - testing invalid input
@@ -125,11 +125,20 @@ it("API surface - functional builder should accept OutputOptions in output metho
 });
 
 it("API surface - pipeline should work with operations", async () => {
-  let pipeline = createPipeline();
-  pipeline = addFlip(pipeline, "horizontal");
+  let pipeline = createPipeline({
+    decoder: "image/jpeg",
+  });
+  pipeline = addFlip(pipeline, "both");
+  pipeline = addResize(pipeline, {
+    width: 1000,
+    height: 1000,
+    background: [0, 0, 0, 0],
+    fit: "contain",
+    position: "center",
+  });
   pipeline = addCrop(pipeline, {
-    height: 50,
-    width: 50,
+    height: 1000,
+    width: 500,
     x: 0,
     y: 0,
     background: [0, 0, 0, 0],
@@ -137,7 +146,8 @@ it("API surface - pipeline should work with operations", async () => {
 
   const input = await getTestImage("original");
   const result = await processPipeline(pipeline, input, {
-    format: "image/jpeg",
+    format: "image/webp",
+    quality: 0.8,
   });
   expect(result).toBeInstanceOf(Uint8Array);
 });
@@ -249,7 +259,7 @@ it("Operations - should handle operations on processors without bitmaps", async 
 });
 
 it("Pipeline system - should create and execute complex pipelines", async () => {
-  let pipeline = createPipeline({ encoder: "image/png", quality: 90 });
+  let pipeline = createPipeline({});
   pipeline = addResize(pipeline, {
     width: 200,
     height: 200,
@@ -268,8 +278,6 @@ it("Pipeline system - should create and execute complex pipelines", async () => 
   });
 
   expect(pipeline.operations).toHaveLength(4);
-  expect(pipeline.config.encoder).toBe("image/png");
-  expect(pipeline.config.quality).toBe(90);
 });
 
 it("Pipeline system - should reuse pipelines with different inputs", async () => {
@@ -310,35 +318,11 @@ it("Pipeline system - should create pipelines from templates", async () => {
 
   const pipeline = createPipelineFromTemplate(template);
   expect(pipeline.operations).toHaveLength(2);
-  expect(pipeline.config.encoder).toBe("image/jpeg");
-});
-
-it("Configuration and strategies - should apply different processing strategies", async () => {
-  const speedPipeline = createSpeedOptimizedPipeline();
-  const qualityPipeline = createQualityOptimizedPipeline();
-  const sizePipeline = createSizeOptimizedPipeline();
-
-  expect(speedPipeline.config.encoder).toBe("image/jpeg");
-  expect(speedPipeline.config.quality).toBe(70);
-
-  expect(qualityPipeline.config.encoder).toBe("image/png");
-  expect(qualityPipeline.config.preserveMetadata).toBe(true);
-
-  expect(sizePipeline.config.encoder).toBe("image/webp");
-  expect(sizePipeline.config.quality).toBe(60);
-});
-
-it("Configuration and strategies - should override config with custom options", async () => {
-  const customPipeline = createSpeedOptimizedPipeline({ quality: 85 });
-  expect(customPipeline.config.quality).toBe(85);
-  expect(customPipeline.config.encoder).toBe("image/jpeg");
 });
 
 it("Configuration and strategies - should create processors with custom configs", async () => {
   const config: ProcessingConfig = {
     decoder: "image/png",
-    encoder: "image/webp",
-    quality: 75,
     preserveMetadata: true,
   };
 
@@ -416,10 +400,7 @@ it("Error handling - should handle invalid operation parameters", async () => {
 });
 
 it("Functional builder advanced - should support complex transformation chains", async () => {
-  const builder = createFunctionalBuilder({
-    encoder: "image/webp",
-    quality: 80,
-  });
+  const builder = createFunctionalBuilder();
 
   const chainedBuilder = builder
     .resize({
@@ -444,7 +425,7 @@ it("Functional builder advanced - should support complex transformation chains",
 });
 
 it("Functional builder advanced - should maintain builder state across operations", async () => {
-  const builder = createFunctionalBuilder({ quality: 95 });
+  const builder = createFunctionalBuilder();
 
   const step1 = builder.resize({
     width: 100,

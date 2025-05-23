@@ -6,8 +6,8 @@ import {
   isRunningInNode,
 } from "../utils/environment";
 
-const QOI_ENC_WASM = "node_modules/@jsquash/qoi/codec/enc/squoosh_qoi_enc.wasm";
-const QOI_DEC_WASM = "node_modules/@jsquash/qoi/codec/dec/squoosh_qoi_dec.wasm";
+const QOI_ENC_WASM = "node_modules/@jsquash/qoi/codec/enc/qoi_enc.wasm";
+const QOI_DEC_WASM = "node_modules/@jsquash/qoi/codec/dec/qoi_dec.wasm";
 
 export const QoiHandler: ImageHandler = {
   async decode(buffer) {

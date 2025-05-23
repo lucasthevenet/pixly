@@ -72,37 +72,27 @@ export const processPipeline = async (
 export const processPipelineToBlob = async (
   pipeline: Pipeline,
   input: ArrayBuffer | Uint8Array | Blob | File | string,
-  outputOpts?: OutputOptions,
+  outputOpts: OutputOptions,
 ): Promise<Blob> => {
-  const defaultOpts: OutputOptions = {
-    format: pipeline.config.encoder || "image/png",
-    ...outputOpts,
-  };
-
   const processor = await createImageProcessor(input, pipeline.config);
   const processedProcessor = await applyOperations(
     processor,
     pipeline.operations,
   );
-  return toBlob(processedProcessor, defaultOpts);
+  return toBlob(processedProcessor, outputOpts);
 };
 
 export const processPipelineToDataURL = async (
   pipeline: Pipeline,
   input: ArrayBuffer | Uint8Array | Blob | File | string,
-  outputOpts?: OutputOptions,
+  outputOpts: OutputOptions,
 ): Promise<string> => {
-  const defaultOpts: OutputOptions = {
-    format: pipeline.config.encoder || "image/png",
-    ...outputOpts,
-  };
-
   const processor = await createImageProcessor(input, pipeline.config);
   const processedProcessor = await applyOperations(
     processor,
     pipeline.operations,
   );
-  return toDataURL(processedProcessor, defaultOpts);
+  return toDataURL(processedProcessor, outputOpts);
 };
 
 // Preset pipeline factories
@@ -116,13 +106,12 @@ export const createThumbnailPipeline = (
   },
 ): Pipeline => {
   const {
-    quality = 80,
     fit = "cover",
     position = "center",
     background = [255, 255, 255, 0],
   } = options || {};
 
-  return addResize(createPipeline({ encoder: "image/jpeg", quality }), {
+  return addResize(createPipeline(), {
     width: size,
     height: size,
     fit,
@@ -143,13 +132,12 @@ export const createWebOptimizedPipeline = (
 ): Pipeline => {
   const {
     maxHeight = null,
-    quality = 85,
     fit = "inside",
     position = "center",
     background = [255, 255, 255, 0],
   } = options || {};
 
-  return addResize(createPipeline({ encoder: "image/webp", quality }), {
+  return addResize(createPipeline(), {
     width: maxWidth,
     height: maxHeight,
     fit,
@@ -158,17 +146,14 @@ export const createWebOptimizedPipeline = (
   });
 };
 
-export const createCompressionPipeline = (
-  quality = 60,
-  options?: {
-    width?: number;
-    height?: number;
-    fit?: ImageFit;
-    position?: ImagePosition;
-    background?: Color;
-  },
-): Pipeline => {
-  let pipeline = createPipeline({ encoder: "image/jpeg", quality });
+export const createCompressionPipeline = (options?: {
+  width?: number;
+  height?: number;
+  fit?: ImageFit;
+  position?: ImagePosition;
+  background?: Color;
+}): Pipeline => {
+  let pipeline = createPipeline();
 
   if (options && (options.width || options.height)) {
     const {
@@ -195,7 +180,7 @@ export const createCompressionPipeline = (
 export const createPipelineFromTemplate = (
   template: PipelineTemplate,
 ): Pipeline => {
-  let pipeline = createPipeline({ encoder: template.outputFormat });
+  let pipeline = createPipeline();
 
   for (const operation of template.operations) {
     pipeline = addOperation(pipeline, operation);
@@ -203,19 +188,3 @@ export const createPipelineFromTemplate = (
 
   return pipeline;
 };
-
-// Strategy factories
-export const createSpeedOptimizedPipeline = (
-  config?: ProcessingConfig,
-): Pipeline =>
-  createPipeline({ encoder: "image/jpeg", quality: 70, ...config });
-
-export const createQualityOptimizedPipeline = (
-  config?: ProcessingConfig,
-): Pipeline =>
-  createPipeline({ encoder: "image/png", preserveMetadata: true, ...config });
-
-export const createSizeOptimizedPipeline = (
-  config?: ProcessingConfig,
-): Pipeline =>
-  createPipeline({ encoder: "image/webp", quality: 60, ...config });

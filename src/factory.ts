@@ -26,11 +26,11 @@ export interface FunctionalBuilder {
   ) => Promise<Uint8Array>;
   toBlob: (
     input: ArrayBuffer | Uint8Array | Blob | File | string,
-    opts?: OutputOptions,
+    opts: OutputOptions,
   ) => Promise<Blob>;
   toDataURL: (
     input: ArrayBuffer | Uint8Array | Blob | File | string,
-    opts?: OutputOptions,
+    opts: OutputOptions,
   ) => Promise<string>;
 }
 
@@ -68,12 +68,12 @@ export const createFunctionalBuilder = (
 
     toBlob: (
       input: ArrayBuffer | Uint8Array | Blob | File | string,
-      opts?: OutputOptions,
+      opts: OutputOptions,
     ) => processPipelineToBlob(currentPipeline, input, opts),
 
     toDataURL: (
       input: ArrayBuffer | Uint8Array | Blob | File | string,
-      opts?: OutputOptions,
+      opts: OutputOptions,
     ) => processPipelineToDataURL(currentPipeline, input, opts),
   });
 

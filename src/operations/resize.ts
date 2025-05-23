@@ -1,8 +1,15 @@
-import resize from "@jsquash/resize";
+import resize, { initResize } from "@jsquash/resize";
 import type { ImageData, Color, ImageFit, ImagePosition } from "../types";
 import { getFrameDimensions } from "../utils/sizing";
+import {
+  isRunningInCloudFlareWorkers,
+  isRunningInNode,
+} from "../utils/environment";
 
-interface ResizeOptions {
+const RESIZE_WASM =
+  "node_modules/@jsquash/resize/lib/resize/pkg/squoosh_resize_bg.wasm";
+
+export interface ResizeOptions {
   width: number | null;
   height: number | null;
   fit: ImageFit;
@@ -16,6 +23,16 @@ export const resizeImage = async (
 ): Promise<ImageData> => {
   if (!opts.width && !opts.height) {
     throw new Error("At least one dimension must be provided!");
+  }
+
+  if (isRunningInCloudFlareWorkers) {
+    await initResize(RESIZE_WASM);
+  }
+  if (isRunningInNode) {
+    const fs = await import("node:fs");
+    const resizeWasmBuffer = fs.readFileSync(RESIZE_WASM);
+    const resizeWasmModule = await WebAssembly.compile(resizeWasmBuffer);
+    await initResize(resizeWasmModule);
   }
 
   const { frameWidth, frameHeight } = getFrameDimensions(

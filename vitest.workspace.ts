@@ -1,14 +1,26 @@
 import { defineWorkspace } from "vitest/config";
 
 export default defineWorkspace([
-  "vitest.config.ts",
   {
-    extends: "vitest.config.ts",
     test: {
+      name: "node",
+      environment: "node",
+    },
+  },
+  {
+    test: {
+      name: "edge",
+      environment: "edge-runtime",
+    },
+  },
+  {
+    test: {
+      name: "browser",
       browser: {
         enabled: true,
         provider: "playwright",
         headless: true,
+        screenshotFailures: false,
         // https://vitest.dev/guide/browser/playwright
         instances: [{ browser: "chromium" }],
       },
@@ -20,6 +32,7 @@ export default defineWorkspace([
         "@jsquash/jxl",
         "@jsquash/png",
         "@jsquash/webp",
+        "@jsquash/resize",
       ],
     },
   },

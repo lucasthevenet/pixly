@@ -6,10 +6,8 @@ import {
   isRunningInNode,
 } from "../utils/environment";
 
-const AVIF_ENC_WASM =
-  "node_modules/@jsquash/avif/codec/enc/squoosh_avif_enc.wasm";
-const AVIF_DEC_WASM =
-  "node_modules/@jsquash/avif/codec/dec/squoosh_avif_dec.wasm";
+const AVIF_ENC_WASM = "node_modules/@jsquash/avif/codec/enc/avif_enc.wasm";
+const AVIF_DEC_WASM = "node_modules/@jsquash/avif/codec/dec/avif_dec.wasm";
 
 export const AvifHandler: ImageHandler = {
   async decode(buffer) {
