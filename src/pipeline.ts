@@ -6,7 +6,6 @@ import type {
   ImageOperation,
   ProcessingConfig,
   OutputOptions,
-  ImageProcessor,
 } from "./core";
 import {
   createImageProcessor,

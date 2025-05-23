@@ -17,8 +17,6 @@ import type {
   FlipDirection,
   CropOptions,
   TransformOptions,
-  ImageFit,
-  ImagePosition,
 } from "./types";
 
 export const typeHandlers: Record<MimeType, ImageHandler> = {

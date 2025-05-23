@@ -55,7 +55,13 @@ const assign = (
   for (let offset = 0; offset < 4; offset += 1) {
     let posMin = (yMin * src.width + xMin) * 4 + offset;
     let posMax = (yMin * src.width + xMax) * 4 + offset;
-    const vMin = interpolate(x, xMin, src.data[posMin], xMax, src.data[posMax]);
+    const vMin = interpolate(
+      x,
+      xMin,
+      src.data[posMin]!,
+      xMax,
+      src.data[posMax]!,
+    );
 
     // special case, y is integer
     if (yMax === yMin) {
@@ -66,9 +72,9 @@ const assign = (
       const vMax = interpolate(
         x,
         xMin,
-        src.data[posMin],
+        src.data[posMin]!,
         xMax,
-        src.data[posMax],
+        src.data[posMax]!,
       );
 
       result[offset] = interpolate(y, yMin, vMin, yMax, vMax);

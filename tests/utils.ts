@@ -8,7 +8,7 @@ export async function getTestImage(
 
     return result;
   }
-  const response = await fetch("/test-1.png");
+  const response = await fetch(`/image_${type}.jpg`);
 
   if (!response.ok) {
     throw new Error("Failed retrieving test image");

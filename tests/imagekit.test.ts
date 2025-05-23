@@ -128,14 +128,14 @@ it("API surface - pipeline should work with operations", async () => {
   let pipeline = createPipeline();
   pipeline = addFlip(pipeline, "horizontal");
   pipeline = addCrop(pipeline, {
-    height: 10,
-    width: 10,
+    height: 50,
+    width: 50,
     x: 0,
     y: 0,
     background: [0, 0, 0, 0],
   });
 
-  const input = new Uint8Array([0]);
+  const input = await getTestImage("original");
   const result = await processPipeline(pipeline, input, {
     format: "image/jpeg",
   });
@@ -519,4 +519,284 @@ it("Performance and edge cases - should work with concurrent operations", async 
     expect(result).toBeDefined();
     expect(result).not.toBe(processor);
   }
+});
+
+it("Operations - should actually resize image dimensions", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  const originalWidth = processor.bitmap.width;
+  const originalHeight = processor.bitmap.height;
+
+  // Resize to specific dimensions
+  const targetWidth = 50;
+  const targetHeight = 30;
+  const resized = await resize({
+    width: targetWidth,
+    height: targetHeight,
+    fit: "fill", // Force exact dimensions
+    background: [0, 0, 0, 0],
+    position: "center",
+  })(processor);
+
+  expect(resized.bitmap).not.toBeNull();
+  expect(resized.bitmap!.width).toBe(targetWidth);
+  expect(resized.bitmap!.height).toBe(targetHeight);
+  expect(resized.bitmap!.width).not.toBe(originalWidth);
+  expect(resized.bitmap!.height).not.toBe(originalHeight);
+});
+
+it("Operations - should actually modify pixel data", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  const originalPixelData = new Uint8ClampedArray(processor.bitmap.data);
+
+  // Apply an operation that should change pixels (e.g., rotation, flip)
+  const flipped = await flip("horizontal")(processor);
+
+  expect(flipped.bitmap).not.toBeNull();
+
+  // Pixel data should be different after transformation
+  expect(flipped.bitmap!.data).not.toEqual(originalPixelData);
+
+  // But should have same dimensions for horizontal flip
+  expect(flipped.bitmap!.width).toBe(processor.bitmap.width);
+  expect(flipped.bitmap!.height).toBe(processor.bitmap.height);
+});
+
+it("Operations - should flip image horizontally correctly", async () => {
+  // Create a simple test image with known pixel pattern
+  const pixelData = new Uint8ClampedArray(3 * 2 * 4); // 3x2 image, 4 bytes per pixel
+  const testImageData = new ImageData(pixelData, 3, 2); // 3x2 image
+
+  // Set left column to red, right column to blue
+  for (let y = 0; y < 2; y++) {
+    // Left pixel (red)
+    testImageData.data[(y * 3 + 0) * 4] = 255; // R
+    testImageData.data[(y * 3 + 0) * 4 + 1] = 0; // G
+    testImageData.data[(y * 3 + 0) * 4 + 2] = 0; // B
+    testImageData.data[(y * 3 + 0) * 4 + 3] = 255; // A
+
+    // Right pixel (blue)
+    testImageData.data[(y * 3 + 2) * 4] = 0; // R
+    testImageData.data[(y * 3 + 2) * 4 + 1] = 0; // G
+    testImageData.data[(y * 3 + 2) * 4 + 2] = 255; // B
+    testImageData.data[(y * 3 + 2) * 4 + 3] = 255; // A
+  }
+
+  const processor = {
+    bitmap: testImageData,
+    buffer: new Uint8Array(),
+    config: {},
+  };
+  const flipped = await flip("horizontal")(processor);
+
+  // After horizontal flip, left should be blue, right should be red
+  expect(flipped.bitmap!.data[0]).toBe(0); // Left pixel R (was blue)
+  expect(flipped.bitmap!.data[2]).toBe(255); // Left pixel B (was blue)
+  expect(flipped.bitmap!.data[8]).toBe(255); // Right pixel R (was red)
+  expect(flipped.bitmap!.data[10]).toBe(0); // Right pixel B (was red)
+});
+
+it("Operations - should crop image correctly", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  const originalWidth = processor.bitmap.width;
+  const originalHeight = processor.bitmap.height;
+
+  const cropWidth = Math.floor(originalWidth / 2);
+  const cropHeight = Math.floor(originalHeight / 2);
+
+  const cropped = await crop({
+    x: 0,
+    y: 0,
+    width: cropWidth,
+    height: cropHeight,
+    background: [0, 0, 0, 0],
+  })(processor);
+
+  expect(cropped.bitmap).not.toBeNull();
+  expect(cropped.bitmap!.width).toBe(cropWidth);
+  expect(cropped.bitmap!.height).toBe(cropHeight);
+
+  // Cropped image should have fewer total pixels
+  const originalPixelCount = originalWidth * originalHeight;
+  const croppedPixelCount = cropWidth * cropHeight;
+  expect(croppedPixelCount).toBeLessThan(originalPixelCount);
+});
+
+it("Operations - should rotate image 90 degrees correctly", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  const originalWidth = processor.bitmap.width;
+  const originalHeight = processor.bitmap.height;
+
+  const rotated = await rotate(90, [255, 255, 255, 255])(processor);
+
+  expect(rotated.bitmap).not.toBeNull();
+
+  // For 90-degree rotation, dimensions should swap
+  expect(rotated.bitmap!.width).toBe(originalHeight);
+  expect(rotated.bitmap!.height).toBe(originalWidth);
+
+  // Pixel data should be different
+  expect(rotated.bitmap!.data).not.toEqual(processor.bitmap!.data);
+});
+
+it("Operations - should produce consistent results for identical operations", async () => {
+  const validPngData = await getTestImage();
+
+  // Apply the same transformation twice
+  const processor1 = await createImageProcessor(validPngData);
+  const result1 = await resize({
+    width: 100,
+    height: 100,
+    fit: "fill",
+    background: [0, 0, 0, 0],
+    position: "center",
+  })(processor1);
+
+  const processor2 = await createImageProcessor(validPngData);
+  const result2 = await resize({
+    width: 100,
+    height: 100,
+    fit: "fill",
+    background: [0, 0, 0, 0],
+    position: "center",
+  })(processor2);
+
+  // Results should be identical
+  expect(result1.bitmap!.width).toBe(result2.bitmap!.width);
+  expect(result1.bitmap!.height).toBe(result2.bitmap!.height);
+  expect(result1.bitmap!.data).toEqual(result2.bitmap!.data);
+});
+
+it("Operations - should handle resize with different fit modes", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  // Test contain fit (should maintain aspect ratio)
+  const contained = await resize({
+    width: 100,
+    height: 50,
+    fit: "contain",
+    background: [0, 0, 0, 0],
+    position: "center",
+  })(processor);
+
+  expect(contained.bitmap).not.toBeNull();
+
+  // Should not exceed target dimensions
+  expect(contained.bitmap!.width).toBeLessThanOrEqual(100);
+  expect(contained.bitmap!.height).toBeLessThanOrEqual(50);
+
+  // Test fill fit (should use exact dimensions)
+  const filled = await resize({
+    width: 100,
+    height: 50,
+    fit: "fill",
+    background: [0, 0, 0, 0],
+    position: "center",
+  })(processor);
+
+  expect(filled.bitmap).not.toBeNull();
+  expect(filled.bitmap!.width).toBe(100);
+  expect(filled.bitmap!.height).toBe(50);
+});
+
+it("Operations - should verify flip vertical changes pixel arrangement", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  const originalData = new Uint8ClampedArray(processor.bitmap.data);
+
+  const flipped = await flip("vertical")(processor);
+
+  expect(flipped.bitmap).not.toBeNull();
+
+  // Dimensions should remain the same
+  expect(flipped.bitmap!.width).toBe(processor.bitmap.width);
+  expect(flipped.bitmap!.height).toBe(processor.bitmap.height);
+
+  // But pixel data should be different (unless it's a perfectly symmetric image)
+  expect(flipped.bitmap!.data).not.toEqual(originalData);
+});
+
+it("Operations - should handle complex transformation chains with verifiable results", async () => {
+  const validPngData = await getTestImage();
+  const processor = await createImageProcessor(validPngData);
+
+  // Only test if bitmap exists and has valid dimensions
+  if (!processor.bitmap) {
+    expect(processor.bitmap).not.toBeNull();
+    return;
+  }
+
+  const originalWidth = processor.bitmap.width;
+  const originalHeight = processor.bitmap.height;
+
+  // Apply multiple transformations
+  const result = await pipe(
+    resize({
+      width: 200,
+      height: 200,
+      fit: "fill",
+      background: [0, 0, 0, 0],
+      position: "center",
+    }),
+    crop({ x: 50, y: 50, width: 100, height: 100, background: [0, 0, 0, 0] }),
+    flip("horizontal"),
+  )(processor);
+
+  expect(result.bitmap).not.toBeNull();
+
+  // Final image should be 100x100 (after crop)
+  expect(result.bitmap!.width).toBe(100);
+  expect(result.bitmap!.height).toBe(100);
+
+  // Should be smaller than original
+  expect(result.bitmap!.width).toBeLessThanOrEqual(originalWidth);
+  expect(result.bitmap!.height).toBeLessThanOrEqual(originalHeight);
+
+  // Pixel data should be completely different
+  expect(result.bitmap!.data).not.toEqual(processor.bitmap.data);
 });

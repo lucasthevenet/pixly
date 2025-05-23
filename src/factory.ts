@@ -1,20 +1,7 @@
 // Factory system for ImageKit functional implementation
 
-import type {
-  ProcessingConfig,
-  OutputOptions,
-  ImageProcessor,
-  Pipeline,
-  PipelineTemplate,
-} from "./core";
-import { createImageProcessor } from "./core";
-import type {
-  Color,
-  FlipDirection,
-  CropOptions,
-  ImageFit,
-  ImagePosition,
-} from "./types";
+import type { ProcessingConfig, OutputOptions, Pipeline } from "./core";
+import type { Color, FlipDirection, CropOptions } from "./types";
 import type { ResizeOptions } from "./operations/js-resize";
 import {
   createPipeline,
@@ -25,10 +12,6 @@ import {
   processPipeline,
   processPipelineToBlob,
   processPipelineToDataURL,
-  createThumbnailPipeline,
-  createWebOptimizedPipeline,
-  createCompressionPipeline,
-  createPipelineFromTemplate,
 } from "./pipeline";
 
 // Functional Builder interface
