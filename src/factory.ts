@@ -31,40 +31,6 @@ import {
   createPipelineFromTemplate,
 } from "./pipeline";
 
-// Factory functions for different input types
-export const createImageProcessorFromFile =
-  (config?: ProcessingConfig) => (file: File) =>
-    createImageProcessor(file, config);
-
-export const createImageProcessorFromUrl =
-  (config?: ProcessingConfig) => (url: string) =>
-    createImageProcessor(url, config);
-
-export const createImageProcessorFromBuffer =
-  (config?: ProcessingConfig) => (buffer: ArrayBuffer | Uint8Array) =>
-    createImageProcessor(buffer, config);
-
-export const createImageProcessorFromBlob =
-  (config?: ProcessingConfig) => (blob: Blob) =>
-    createImageProcessor(blob, config);
-
-// Format-specific factories
-export const createPngProcessor = (
-  input: ArrayBuffer | Uint8Array | Blob | File | string,
-) => createImageProcessor(input, { decoder: "image/png" });
-
-export const createJpegProcessor = (
-  input: ArrayBuffer | Uint8Array | Blob | File | string,
-) => createImageProcessor(input, { decoder: "image/jpeg" });
-
-export const createWebpProcessor = (
-  input: ArrayBuffer | Uint8Array | Blob | File | string,
-) => createImageProcessor(input, { decoder: "image/webp" });
-
-export const createAvifProcessor = (
-  input: ArrayBuffer | Uint8Array | Blob | File | string,
-) => createImageProcessor(input, { decoder: "image/avif" });
-
 // Functional Builder interface
 export interface FunctionalBuilder {
   resize: (opts: ResizeOptions) => FunctionalBuilder;
@@ -131,19 +97,7 @@ export const createFunctionalBuilder = (
   return createBuilder(pipeline);
 };
 
-// Main factory objects
-export const ImageKit = {
-  from: createImageProcessor,
-  fromFile: createImageProcessorFromFile(),
-  fromUrl: createImageProcessorFromUrl(),
-  fromBuffer: createImageProcessorFromBuffer(),
-  fromBlob: createImageProcessorFromBlob(),
-  fromPng: createPngProcessor,
-  fromJpeg: createJpegProcessor,
-  fromWebp: createWebpProcessor,
-  fromAvif: createAvifProcessor,
-};
-
+// Main factory object
 export const ImageKitFactory = {
   createBuilder: createFunctionalBuilder,
   createPipeline,

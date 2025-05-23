@@ -56,19 +56,7 @@ export {
 } from "./pipeline";
 
 // Re-export factory functionality
-export {
-  createImageProcessorFromFile,
-  createImageProcessorFromUrl,
-  createImageProcessorFromBuffer,
-  createImageProcessorFromBlob,
-  createPngProcessor,
-  createJpegProcessor,
-  createWebpProcessor,
-  createAvifProcessor,
-  createFunctionalBuilder,
-  ImageKit,
-  ImageKitFactory,
-} from "./factory";
+export { createFunctionalBuilder, ImageKitFactory } from "./factory";
 
 // Re-export functional builder type
 export type { FunctionalBuilder } from "./factory";

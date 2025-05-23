@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  ImageKit,
   createImageProcessor,
   createFunctionalBuilder,
   createPipeline,
@@ -33,7 +32,6 @@ import {
 
 describe("ImageKit Functional API surface", () => {
   it("should have factory functions", () => {
-    expect(typeof ImageKit.from).toBe("function");
     expect(typeof createImageProcessor).toBe("function");
     expect(typeof createFunctionalBuilder).toBe("function");
   });
@@ -171,13 +169,19 @@ describe("ImageKit Functional API surface", () => {
   it("should support format-specific factories", async () => {
     const input = new Uint8Array([0]);
 
-    const pngProcessor = await ImageKit.fromPng(input);
+    const pngProcessor = await createImageProcessor(input, {
+      decoder: "image/png",
+    });
     expect(pngProcessor.config.decoder).toBe("image/png");
 
-    const jpegProcessor = await ImageKit.fromJpeg(input);
+    const jpegProcessor = await createImageProcessor(input, {
+      decoder: "image/jpeg",
+    });
     expect(jpegProcessor.config.decoder).toBe("image/jpeg");
 
-    const webpProcessor = await ImageKit.fromWebp(input);
+    const webpProcessor = await createImageProcessor(input, {
+      decoder: "image/webp",
+    });
     expect(webpProcessor.config.decoder).toBe("image/webp");
   });
 
