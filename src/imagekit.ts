@@ -1,6 +1,3 @@
-// ImageKit: Isomorphic image transformation/compression API (browser & Node)
-// NOTE: Implementation stubs only; real logic to be filled in vertical slices.
-
 import { AvifHandler } from "./handlers/avif";
 import { JpegHandler } from "./handlers/jpeg";
 import { JxlHandler } from "./handlers/jxl";
@@ -19,6 +16,7 @@ import type {
   CropOptions,
   TransformOptions,
 } from "./types";
+import { ensureDecodeWasmLoadedNode, ensureWasmLoaded } from "./wasm-util";
 
 const typeHandlers: Record<MimeType, ImageHandler> = {
   "image/png": PngHandler,
@@ -65,16 +63,36 @@ type ImageOperation =
   | FlipOperation
   | CropOperation;
 
+// Factory configuration interfaces
+interface ProcessingConfig {
+  decoder?: "auto" | MimeType;
+  encoder?: MimeType;
+  quality?: number;
+  preserveMetadata?: boolean;
+}
+
+interface PipelineTemplate {
+  name: string;
+  operations: ImageOperation[];
+  outputFormat: MimeType;
+}
+
 /**
  * Internal ImageKit processor - handles the actual image processing
  */
 class ImageKitProcessor {
   private _buffer: Uint8Array = new Uint8Array();
-  private _bitmap: ImageData | null = null; // decoded RGBA bitmap
+  private _bitmap: ImageData | null = null;
+  private _config: ProcessingConfig;
 
-  constructor(buffer: Uint8Array, bitmap: ImageData | null) {
+  constructor(
+    buffer: Uint8Array,
+    bitmap: ImageData | null,
+    config: ProcessingConfig = {},
+  ) {
     this._buffer = buffer;
     this._bitmap = bitmap;
+    this._config = config;
   }
 
   async applyOperations(operations: ImageOperation[]): Promise<void> {
@@ -110,42 +128,42 @@ class ImageKitProcessor {
   }
 
   async convert(opts: OutputOptions): Promise<Uint8Array<ArrayBuffer>> {
-    const handler = typeHandlers[opts.format];
+    const format = this._config.encoder || opts.format;
+    const handler = typeHandlers[format];
 
     if (!handler || !this._bitmap) {
       throw new Error("Failed to encode into format");
     }
 
-    const result = await handler.encode(this._bitmap, {
+    const encodeOptions = {
       width: this._bitmap.width,
       height: this._bitmap.height,
+      quality: this._config.quality,
       ...opts,
-    });
+    };
 
+    const result = await handler.encode(this._bitmap, encodeOptions);
     return new Uint8Array(result);
   }
 
   async toBuffer(opts: OutputOptions): Promise<Uint8Array> {
-    // If no bitmap, fallback to passthrough
     if (!this._bitmap) return this._buffer;
     return this.convert(opts);
   }
 
   async toBlob(opts: OutputOptions): Promise<Blob> {
     const buffer = await this.toBuffer(opts);
-    return new Blob([buffer], { type: opts.format });
+    const format = this._config.encoder || opts.format;
+    return new Blob([buffer], { type: format });
   }
 
   async toDataURL(opts: OutputOptions): Promise<string> {
     const buffer = await this.toBuffer(opts);
+    const format = this._config.encoder || opts.format;
     const base64 = btoa(String.fromCharCode(...buffer));
-    return `data:${opts.format};base64,${base64}`;
+    return `data:${format};base64,${base64}`;
   }
 
-  /**
-   * Detects image format from magic bytes.
-   * Returns one of: 'png', 'jpeg', 'webp', 'jxl', 'avif', 'qoi', or undefined.
-   */
   static getFormatFromMagicBytes(magic: Uint8Array): MimeType | undefined {
     if (
       magic[0] === 0x89 &&
@@ -211,68 +229,17 @@ class ImageKitProcessor {
 }
 
 /**
- * ImageKit Builder - provides a fluent API for image transformations
+ * ImageKit Pipeline - represents a sequence of operations
  */
-export class ImageKit {
-  private _buffer: Uint8Array;
-  private _bitmap: ImageData | null;
+export class ImageKitPipeline {
   private _operations: ImageOperation[] = [];
+  private _config: ProcessingConfig;
 
-  private constructor(buffer: Uint8Array, bitmap: ImageData | null) {
-    this._buffer = buffer;
-    this._bitmap = bitmap;
+  constructor(config: ProcessingConfig = {}) {
+    this._config = config;
   }
 
-  // Factory method
-  static async from(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-  ): Promise<ImageKit> {
-    let buffer: Uint8Array;
-
-    if (typeof input === "string") {
-      // Assume URL, fetch as ArrayBuffer
-      const res = await fetch(input);
-      buffer = new Uint8Array(await res.arrayBuffer());
-    } else if (input instanceof Blob || input instanceof File) {
-      buffer = new Uint8Array(await input.arrayBuffer());
-    } else if (input instanceof ArrayBuffer) {
-      buffer = new Uint8Array(input);
-    } else if (input instanceof Uint8Array) {
-      buffer = input;
-    } else {
-      throw new Error("Unsupported input type");
-    }
-
-    // Try to decode using @jsquash decoders (browser/Node)
-    let bitmap: ImageData | null = null;
-    try {
-      // Detect format by magic bytes
-      const magic = buffer.slice(0, 16);
-      const format =
-        ImageKitProcessor.getFormatFromMagicBytes(magic) ?? "image/png";
-
-      if (format in typeHandlers) {
-        console.log("Decoder found, attempting to decode...", buffer);
-        const result = await typeHandlers[format].decode(
-          buffer.buffer as ArrayBuffer,
-        );
-        console.log("Decode result:", result);
-        if (result) {
-          bitmap = result;
-        }
-      } else {
-        console.log("No decoder found for magic bytes:", Array.from(magic));
-      }
-    } catch (err) {
-      console.log(err);
-      // fallback: leave bitmap null
-      bitmap = null;
-    }
-
-    return new ImageKit(buffer, bitmap);
-  }
-
-  // Builder methods - these return this for chaining
+  // Builder methods for pipeline creation
   resize(opts: ResizeOptions): this {
     this._operations.push({ type: "resize", params: opts });
     return this;
@@ -293,31 +260,332 @@ export class ImageKit {
     return this;
   }
 
-  // Terminal methods - these execute the operations and return results
+  // Execute pipeline on input
+  async process(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    outputOpts: OutputOptions,
+  ): Promise<Uint8Array> {
+    const { buffer, bitmap } = await this._loadInput(input);
+    const processor = new ImageKitProcessor(buffer, bitmap, this._config);
+    await processor.applyOperations(this._operations);
+    return processor.toBuffer(outputOpts);
+  }
+
+  async processToBlob(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    outputOpts?: OutputOptions,
+  ): Promise<Blob> {
+    const defaultOpts: OutputOptions = {
+      format: this._config.encoder || "image/png",
+      ...outputOpts,
+    };
+
+    const { buffer, bitmap } = await this._loadInput(input);
+    const processor = new ImageKitProcessor(buffer, bitmap, this._config);
+    await processor.applyOperations(this._operations);
+    return processor.toBlob(defaultOpts);
+  }
+
+  async processToDataURL(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    outputOpts?: OutputOptions,
+  ): Promise<string> {
+    const defaultOpts: OutputOptions = {
+      format: this._config.encoder || "image/png",
+      ...outputOpts,
+    };
+
+    const { buffer, bitmap } = await this._loadInput(input);
+    const processor = new ImageKitProcessor(buffer, bitmap, this._config);
+    await processor.applyOperations(this._operations);
+    return processor.toDataURL(defaultOpts);
+  }
+
+  private async _loadInput(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+  ): Promise<{ buffer: Uint8Array; bitmap: ImageData | null }> {
+    let buffer: Uint8Array;
+
+    if (typeof input === "string") {
+      const res = await fetch(input);
+      buffer = new Uint8Array(await res.arrayBuffer());
+    } else if (input instanceof Blob || input instanceof File) {
+      buffer = new Uint8Array(await input.arrayBuffer());
+    } else if (input instanceof ArrayBuffer) {
+      buffer = new Uint8Array(input);
+    } else if (input instanceof Uint8Array) {
+      buffer = input;
+    } else {
+      throw new Error("Unsupported input type");
+    }
+
+    let bitmap: ImageData | null = null;
+    try {
+      const magic = buffer.slice(0, 16);
+      const format =
+        this._config.decoder === "auto" || !this._config.decoder
+          ? (ImageKitProcessor.getFormatFromMagicBytes(magic) ?? "image/png")
+          : this._config.decoder;
+
+      if (format in typeHandlers) {
+        const result = await typeHandlers[format].decode(
+          buffer.buffer as ArrayBuffer,
+        );
+        if (result) {
+          bitmap = result;
+        }
+      }
+    } catch (err) {
+      console.log(err);
+      bitmap = null;
+    }
+
+    return { buffer, bitmap };
+  }
+}
+
+/**
+ * Main Factory class for creating ImageKit instances and pipelines
+ */
+export class ImageKitFactory {
+  // Input-based factory methods
+  static async fromFile(
+    file: File,
+    config?: ProcessingConfig,
+  ): Promise<ImageKit> {
+    return ImageKit.from(file, config);
+  }
+
+  static async fromUrl(
+    url: string,
+    config?: ProcessingConfig,
+  ): Promise<ImageKit> {
+    return ImageKit.from(url, config);
+  }
+
+  static async fromBuffer(
+    buffer: ArrayBuffer | Uint8Array,
+    config?: ProcessingConfig,
+  ): Promise<ImageKit> {
+    return ImageKit.from(buffer, config);
+  }
+
+  static async fromBlob(
+    blob: Blob,
+    config?: ProcessingConfig,
+  ): Promise<ImageKit> {
+    return ImageKit.from(blob, config);
+  }
+
+  // Format-specific factory methods
+  static async fromPng(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+  ): Promise<ImageKit> {
+    return ImageKit.from(input, { decoder: "image/png" });
+  }
+
+  static async fromJpeg(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+  ): Promise<ImageKit> {
+    return ImageKit.from(input, { decoder: "image/jpeg" });
+  }
+
+  static async fromWebp(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+  ): Promise<ImageKit> {
+    return ImageKit.from(input, { decoder: "image/webp" });
+  }
+
+  static async fromAvif(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+  ): Promise<ImageKit> {
+    return ImageKit.from(input, { decoder: "image/avif" });
+  }
+
+  // Pipeline factory methods
+  static createPipeline(config?: ProcessingConfig): ImageKitPipeline {
+    return new ImageKitPipeline(config);
+  }
+
+  // Preset pipelines
+  static createThumbnailPipeline(size: number = 150): ImageKitPipeline {
+    return new ImageKitPipeline({ encoder: "image/jpeg", quality: 80 }).resize({
+      width: size,
+      height: size,
+      fit: "cover",
+    });
+  }
+
+  static createWebOptimizedPipeline(maxWidth: number = 1920): ImageKitPipeline {
+    return new ImageKitPipeline({ encoder: "image/webp", quality: 85 }).resize({
+      width: maxWidth,
+      fit: "inside",
+    });
+  }
+
+  static createCompressionPipeline(quality: number = 60): ImageKitPipeline {
+    return new ImageKitPipeline({ encoder: "image/jpeg", quality });
+  }
+
+  // Template-based factory
+  static createFromTemplate(template: PipelineTemplate): ImageKitPipeline {
+    const pipeline = new ImageKitPipeline({ encoder: template.outputFormat });
+    template.operations.forEach((op) => {
+      switch (op.type) {
+        case "resize":
+          pipeline.resize(op.params);
+          break;
+        case "rotate":
+          pipeline.rotate(op.params.angle, op.params.color);
+          break;
+        case "flip":
+          pipeline.flip(op.params.direction);
+          break;
+        case "crop":
+          pipeline.crop(op.params);
+          break;
+      }
+    });
+    return pipeline;
+  }
+
+  // Strategy factory
+  static createWithStrategy(
+    strategy: "speed" | "quality" | "size",
+  ): (config?: ProcessingConfig) => ImageKitPipeline {
+    const strategies = {
+      speed: { encoder: "image/jpeg" as MimeType, quality: 70 },
+      quality: { encoder: "image/png" as MimeType, preserveMetadata: true },
+      size: { encoder: "image/webp" as MimeType, quality: 60 },
+    };
+
+    return (config?: ProcessingConfig) => {
+      return new ImageKitPipeline({ ...strategies[strategy], ...config });
+    };
+  }
+}
+
+/**
+ * ImageKit Builder - updated to work with factory pattern
+ */
+export class ImageKit {
+  private _buffer: Uint8Array;
+  private _bitmap: ImageData | null;
+  private _operations: ImageOperation[] = [];
+  private _config: ProcessingConfig;
+
+  private constructor(
+    buffer: Uint8Array,
+    bitmap: ImageData | null,
+    config: ProcessingConfig = {},
+  ) {
+    this._buffer = buffer;
+    this._bitmap = bitmap;
+    this._config = config;
+  }
+
+  // Updated factory method with config support
+  static async from(
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    config: ProcessingConfig = {},
+  ): Promise<ImageKit> {
+    let buffer: Uint8Array;
+
+    if (typeof input === "string") {
+      const res = await fetch(input);
+      buffer = new Uint8Array(await res.arrayBuffer());
+    } else if (input instanceof Blob || input instanceof File) {
+      buffer = new Uint8Array(await input.arrayBuffer());
+    } else if (input instanceof ArrayBuffer) {
+      buffer = new Uint8Array(input);
+    } else if (input instanceof Uint8Array) {
+      buffer = input;
+    } else {
+      throw new Error("Unsupported input type");
+    }
+
+    let bitmap: ImageData | null = null;
+    try {
+      const magic = buffer.slice(0, 16);
+      const format =
+        config.decoder === "auto" || !config.decoder
+          ? (ImageKitProcessor.getFormatFromMagicBytes(magic) ?? "image/png")
+          : config.decoder;
+
+      if (format in typeHandlers) {
+        const result = await typeHandlers[format].decode(
+          buffer.buffer as ArrayBuffer,
+        );
+        if (result) {
+          bitmap = result;
+        }
+      }
+    } catch (err) {
+      console.log(err);
+      bitmap = null;
+    }
+
+    return new ImageKit(buffer, bitmap, config);
+  }
+
+  // Builder methods
+  resize(opts: ResizeOptions): this {
+    this._operations.push({ type: "resize", params: opts });
+    return this;
+  }
+
+  rotate(angle: number, color: Color): this {
+    this._operations.push({ type: "rotate", params: { angle, color } });
+    return this;
+  }
+
+  flip(direction: FlipDirection): this {
+    this._operations.push({ type: "flip", params: { direction } });
+    return this;
+  }
+
+  crop(options: CropOptions): this {
+    this._operations.push({ type: "crop", params: options });
+    return this;
+  }
+
+  // Terminal methods
   async toBuffer(opts: OutputOptions): Promise<Uint8Array> {
-    const processor = new ImageKitProcessor(this._buffer, this._bitmap);
+    const processor = new ImageKitProcessor(
+      this._buffer,
+      this._bitmap,
+      this._config,
+    );
     await processor.applyOperations(this._operations);
     return processor.toBuffer(opts);
   }
 
   async toBlob(opts?: OutputOptions): Promise<Blob> {
     const defaultOpts: OutputOptions = {
-      format: "image/png",
+      format: this._config.encoder || "image/png",
       ...opts,
     };
 
-    const processor = new ImageKitProcessor(this._buffer, this._bitmap);
+    const processor = new ImageKitProcessor(
+      this._buffer,
+      this._bitmap,
+      this._config,
+    );
     await processor.applyOperations(this._operations);
     return processor.toBlob(defaultOpts);
   }
 
   async toDataURL(opts?: OutputOptions): Promise<string> {
     const defaultOpts: OutputOptions = {
-      format: "image/png",
+      format: this._config.encoder || "image/png",
       ...opts,
     };
 
-    const processor = new ImageKitProcessor(this._buffer, this._bitmap);
+    const processor = new ImageKitProcessor(
+      this._buffer,
+      this._bitmap,
+      this._config,
+    );
     await processor.applyOperations(this._operations);
     return processor.toDataURL(defaultOpts);
   }
