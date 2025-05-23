@@ -19,13 +19,10 @@ import {
   compose,
   createThumbnailPipeline,
   createPipelineFromTemplate,
-  createSpeedOptimizedPipeline,
-  createQualityOptimizedPipeline,
-  createSizeOptimizedPipeline,
   type ProcessingConfig,
   type PipelineTemplate,
 } from "../src/index";
-import { getTestImage, saveTestImage } from "./utils";
+import { getTestImage } from "./utils";
 
 it("API surface - should handle invalid input types gracefully", async () => {
   // @ts-expect-error - testing invalid input
