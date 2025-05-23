@@ -15,8 +15,9 @@ import type {
   FlipDirection,
   CropOptions,
   TransformOptions,
+  ImageFit,
+  ImagePosition,
 } from "./types";
-
 
 const typeHandlers: Record<MimeType, ImageHandler> = {
   "image/png": PngHandler,
@@ -211,7 +212,11 @@ export const applyOperation = async (
   processor: ImageProcessor,
   operation: ImageOperation,
 ): Promise<ImageProcessor> => {
-  if (!processor.bitmap) return processor;
+  if (!processor.bitmap) {
+    return {
+      ...processor,
+    };
+  }
 
   let newBitmap = processor.bitmap;
 
@@ -458,12 +463,17 @@ export const createThumbnailPipeline = (size = 150): Pipeline =>
     width: size,
     height: size,
     fit: "cover",
+    position: "center",
+    background: [255, 255, 255, 0],
   });
 
 export const createWebOptimizedPipeline = (maxWidth = 1920): Pipeline =>
   addResize(createPipeline({ encoder: "image/webp", quality: 85 }), {
     width: maxWidth,
+    height: null,
     fit: "inside",
+    position: "center",
+    background: [255, 255, 255, 0],
   });
 
 export const createCompressionPipeline = (quality = 60): Pipeline =>
@@ -521,46 +531,46 @@ export interface FunctionalBuilder {
 export const createFunctionalBuilder = (
   config: ProcessingConfig = {},
 ): FunctionalBuilder => {
-  let pipeline = createPipeline(config);
+  const pipeline = createPipeline(config);
 
-  const builder: FunctionalBuilder = {
+  const createBuilder = (currentPipeline: Pipeline): FunctionalBuilder => ({
     resize: (opts: ResizeOptions) => {
-      pipeline = addResize(pipeline, opts);
-      return builder;
+      const newPipeline = addResize(currentPipeline, opts);
+      return createBuilder(newPipeline);
     },
 
     rotate: (angle: number, color: Color) => {
-      pipeline = addRotate(pipeline, angle, color);
-      return builder;
+      const newPipeline = addRotate(currentPipeline, angle, color);
+      return createBuilder(newPipeline);
     },
 
     flip: (direction: FlipDirection) => {
-      pipeline = addFlip(pipeline, direction);
-      return builder;
+      const newPipeline = addFlip(currentPipeline, direction);
+      return createBuilder(newPipeline);
     },
 
     crop: (options: CropOptions) => {
-      pipeline = addCrop(pipeline, options);
-      return builder;
+      const newPipeline = addCrop(currentPipeline, options);
+      return createBuilder(newPipeline);
     },
 
     toBuffer: (
       input: ArrayBuffer | Uint8Array | Blob | File | string,
       opts: OutputOptions,
-    ) => processPipeline(pipeline, input, opts),
+    ) => processPipeline(currentPipeline, input, opts),
 
     toBlob: (
       input: ArrayBuffer | Uint8Array | Blob | File | string,
       opts?: OutputOptions,
-    ) => processPipelineToBlob(pipeline, input, opts),
+    ) => processPipelineToBlob(currentPipeline, input, opts),
 
     toDataURL: (
       input: ArrayBuffer | Uint8Array | Blob | File | string,
       opts?: OutputOptions,
-    ) => processPipelineToDataURL(pipeline, input, opts),
-  };
+    ) => processPipelineToDataURL(currentPipeline, input, opts),
+  });
 
-  return builder;
+  return createBuilder(pipeline);
 };
 
 // Convenience exports that mimic the original API
