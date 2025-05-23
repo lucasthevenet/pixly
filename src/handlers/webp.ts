@@ -6,10 +6,8 @@ import {
   isRunningInNode,
 } from "../utils/environment";
 
-const WEBP_ENC_WASM =
-  "node_modules/@jsquash/webp/codec/enc/squoosh_webp_enc.wasm";
-const WEBP_DEC_WASM =
-  "node_modules/@jsquash/webp/codec/dec/squoosh_webp_dec.wasm";
+const WEBP_ENC_WASM = "node_modules/@jsquash/webp/codec/enc/webp_enc.wasm";
+const WEBP_DEC_WASM = "node_modules/@jsquash/webp/codec/dec/webp_dec.wasm";
 
 export const WebpHandler: ImageHandler = {
   async decode(buffer) {

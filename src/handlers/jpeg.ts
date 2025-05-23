@@ -6,10 +6,8 @@ import {
   isRunningInNode,
 } from "../utils/environment";
 
-const JPEG_ENC_WASM =
-  "node_modules/@jsquash/jpeg/codec/enc/squoosh_jpeg_enc.wasm";
-const JPEG_DEC_WASM =
-  "node_modules/@jsquash/jpeg/codec/dec/squoosh_jpeg_dec.wasm";
+const JPEG_ENC_WASM = "node_modules/@jsquash/jpeg/codec/enc/mozjpeg_enc.wasm";
+const JPEG_DEC_WASM = "node_modules/@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm";
 
 export const JpegHandler: ImageHandler = {
   async decode(buffer) {
