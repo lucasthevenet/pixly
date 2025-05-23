@@ -16,7 +16,7 @@ import type {
   CropOptions,
   TransformOptions,
 } from "./types";
-import { ensureDecodeWasmLoadedNode, ensureWasmLoaded } from "./wasm-util";
+
 
 const typeHandlers: Record<MimeType, ImageHandler> = {
   "image/png": PngHandler,
@@ -27,566 +27,571 @@ const typeHandlers: Record<MimeType, ImageHandler> = {
   "image/jxl": JxlHandler,
 };
 
-interface OutputOptions extends TransformOptions {
+// Core types
+export interface OutputOptions extends TransformOptions {
   format: MimeType;
 }
 
-// Operation types for the builder pattern
-interface Operation {
-  type: "resize" | "rotate" | "flip" | "crop";
-  params: unknown;
-}
-
-interface ResizeOperation extends Operation {
-  type: "resize";
-  params: ResizeOptions;
-}
-
-interface RotateOperation extends Operation {
-  type: "rotate";
-  params: { angle: number; color: Color };
-}
-
-interface FlipOperation extends Operation {
-  type: "flip";
-  params: { direction: FlipDirection };
-}
-
-interface CropOperation extends Operation {
-  type: "crop";
-  params: CropOptions;
-}
-
-type ImageOperation =
-  | ResizeOperation
-  | RotateOperation
-  | FlipOperation
-  | CropOperation;
-
-// Factory configuration interfaces
-interface ProcessingConfig {
+export interface ProcessingConfig {
   decoder?: "auto" | MimeType;
   encoder?: MimeType;
   quality?: number;
   preserveMetadata?: boolean;
 }
 
-interface PipelineTemplate {
+export interface ImageProcessor {
+  buffer: Uint8Array;
+  bitmap: ImageData | null;
+  config: ProcessingConfig;
+}
+
+export interface Operation {
+  type: "resize" | "rotate" | "flip" | "crop";
+  params: unknown;
+}
+
+export interface ResizeOperation extends Operation {
+  type: "resize";
+  params: ResizeOptions;
+}
+
+export interface RotateOperation extends Operation {
+  type: "rotate";
+  params: { angle: number; color: Color };
+}
+
+export interface FlipOperation extends Operation {
+  type: "flip";
+  params: { direction: FlipDirection };
+}
+
+export interface CropOperation extends Operation {
+  type: "crop";
+  params: CropOptions;
+}
+
+export type ImageOperation =
+  | ResizeOperation
+  | RotateOperation
+  | FlipOperation
+  | CropOperation;
+
+export interface Pipeline {
+  operations: ImageOperation[];
+  config: ProcessingConfig;
+}
+
+export interface PipelineTemplate {
   name: string;
   operations: ImageOperation[];
   outputFormat: MimeType;
 }
 
-/**
- * Internal ImageKit processor - handles the actual image processing
- */
-class ImageKitProcessor {
-  private _buffer: Uint8Array = new Uint8Array();
-  private _bitmap: ImageData | null = null;
-  private _config: ProcessingConfig;
-
-  constructor(
-    buffer: Uint8Array,
-    bitmap: ImageData | null,
-    config: ProcessingConfig = {},
+// Core utility functions
+export const getFormatFromMagicBytes = (
+  magic: Uint8Array,
+): MimeType | undefined => {
+  if (
+    magic[0] === 0x89 &&
+    magic[1] === 0x50 &&
+    magic[2] === 0x4e &&
+    magic[3] === 0x47
   ) {
-    this._buffer = buffer;
-    this._bitmap = bitmap;
-    this._config = config;
+    return "image/png";
   }
-
-  async applyOperations(operations: ImageOperation[]): Promise<void> {
-    for (const operation of operations) {
-      await this.applyOperation(operation);
-    }
+  if (magic[0] === 0xff && magic[1] === 0xd8) {
+    return "image/jpeg";
   }
-
-  private async applyOperation(operation: ImageOperation): Promise<void> {
-    if (!this._bitmap) return;
-
-    switch (operation.type) {
-      case "resize":
-        this._bitmap = await resizeImage(this._bitmap, operation.params);
-        break;
-      case "rotate":
-        this._bitmap = await rotateImage(
-          this._bitmap,
-          operation.params.angle,
-          operation.params.color,
-        );
-        break;
-      case "flip":
-        this._bitmap = await flipImage(
-          this._bitmap,
-          operation.params.direction,
-        );
-        break;
-      case "crop":
-        this._bitmap = await cropImage(this._bitmap, operation.params);
-        break;
-    }
-  }
-
-  async convert(opts: OutputOptions): Promise<Uint8Array<ArrayBuffer>> {
-    const format = this._config.encoder || opts.format;
-    const handler = typeHandlers[format];
-
-    if (!handler || !this._bitmap) {
-      throw new Error("Failed to encode into format");
-    }
-
-    const encodeOptions = {
-      width: this._bitmap.width,
-      height: this._bitmap.height,
-      quality: this._config.quality,
-      ...opts,
-    };
-
-    const result = await handler.encode(this._bitmap, encodeOptions);
-    return new Uint8Array(result);
-  }
-
-  async toBuffer(opts: OutputOptions): Promise<Uint8Array> {
-    if (!this._bitmap) return this._buffer;
-    return this.convert(opts);
-  }
-
-  async toBlob(opts: OutputOptions): Promise<Blob> {
-    const buffer = await this.toBuffer(opts);
-    const format = this._config.encoder || opts.format;
-    return new Blob([buffer], { type: format });
-  }
-
-  async toDataURL(opts: OutputOptions): Promise<string> {
-    const buffer = await this.toBuffer(opts);
-    const format = this._config.encoder || opts.format;
-    const base64 = btoa(String.fromCharCode(...buffer));
-    return `data:${format};base64,${base64}`;
-  }
-
-  static getFormatFromMagicBytes(magic: Uint8Array): MimeType | undefined {
-    if (
-      magic[0] === 0x89 &&
-      magic[1] === 0x50 &&
-      magic[2] === 0x4e &&
-      magic[3] === 0x47
-    ) {
-      return "image/png";
-    }
-    if (magic[0] === 0xff && magic[1] === 0xd8) {
-      return "image/jpeg";
-    }
-    if (
-      magic[0] === 0x52 &&
-      magic[1] === 0x49 &&
-      magic[2] === 0x46 &&
-      magic[3] === 0x46 &&
-      magic[8] === 0x57 &&
-      magic[9] === 0x45 &&
-      magic[10] === 0x42 &&
-      magic[11] === 0x50
-    ) {
-      return "image/webp";
-    }
-    if (
-      magic[0] === 0x00 &&
-      magic[1] === 0x00 &&
-      magic[2] === 0x00 &&
-      magic[3] === 0x0c &&
-      magic[4] === 0x6a &&
-      magic[5] === 0x58 &&
-      magic[6] === 0x4c &&
-      magic[7] === 0x20
-    ) {
-      return "image/jxl";
-    }
-    if (
-      magic[0] === 0x00 &&
-      magic[1] === 0x00 &&
-      magic[2] === 0x00 &&
-      magic[3] === 0x1c &&
-      magic[4] === 0x66 &&
-      magic[5] === 0x74 &&
-      magic[6] === 0x79 &&
-      magic[7] === 0x70 &&
-      magic[8] === 0x61 &&
-      magic[9] === 0x76 &&
-      magic[10] === 0x69 &&
-      magic[11] === 0x66
-    ) {
-      return "image/avif";
-    }
-    if (
-      magic[0] === 0x71 &&
-      magic[1] === 0x6f &&
-      magic[2] === 0x69 &&
-      magic[3] === 0x66
-    ) {
-      return "image/qoi";
-    }
-    return undefined;
-  }
-}
-
-/**
- * ImageKit Pipeline - represents a sequence of operations
- */
-export class ImageKitPipeline {
-  private _operations: ImageOperation[] = [];
-  private _config: ProcessingConfig;
-
-  constructor(config: ProcessingConfig = {}) {
-    this._config = config;
-  }
-
-  // Builder methods for pipeline creation
-  resize(opts: ResizeOptions): this {
-    this._operations.push({ type: "resize", params: opts });
-    return this;
-  }
-
-  rotate(angle: number, color: Color): this {
-    this._operations.push({ type: "rotate", params: { angle, color } });
-    return this;
-  }
-
-  flip(direction: FlipDirection): this {
-    this._operations.push({ type: "flip", params: { direction } });
-    return this;
-  }
-
-  crop(options: CropOptions): this {
-    this._operations.push({ type: "crop", params: options });
-    return this;
-  }
-
-  // Execute pipeline on input
-  async process(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-    outputOpts: OutputOptions,
-  ): Promise<Uint8Array> {
-    const { buffer, bitmap } = await this._loadInput(input);
-    const processor = new ImageKitProcessor(buffer, bitmap, this._config);
-    await processor.applyOperations(this._operations);
-    return processor.toBuffer(outputOpts);
-  }
-
-  async processToBlob(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-    outputOpts?: OutputOptions,
-  ): Promise<Blob> {
-    const defaultOpts: OutputOptions = {
-      format: this._config.encoder || "image/png",
-      ...outputOpts,
-    };
-
-    const { buffer, bitmap } = await this._loadInput(input);
-    const processor = new ImageKitProcessor(buffer, bitmap, this._config);
-    await processor.applyOperations(this._operations);
-    return processor.toBlob(defaultOpts);
-  }
-
-  async processToDataURL(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-    outputOpts?: OutputOptions,
-  ): Promise<string> {
-    const defaultOpts: OutputOptions = {
-      format: this._config.encoder || "image/png",
-      ...outputOpts,
-    };
-
-    const { buffer, bitmap } = await this._loadInput(input);
-    const processor = new ImageKitProcessor(buffer, bitmap, this._config);
-    await processor.applyOperations(this._operations);
-    return processor.toDataURL(defaultOpts);
-  }
-
-  private async _loadInput(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-  ): Promise<{ buffer: Uint8Array; bitmap: ImageData | null }> {
-    let buffer: Uint8Array;
-
-    if (typeof input === "string") {
-      const res = await fetch(input);
-      buffer = new Uint8Array(await res.arrayBuffer());
-    } else if (input instanceof Blob || input instanceof File) {
-      buffer = new Uint8Array(await input.arrayBuffer());
-    } else if (input instanceof ArrayBuffer) {
-      buffer = new Uint8Array(input);
-    } else if (input instanceof Uint8Array) {
-      buffer = input;
-    } else {
-      throw new Error("Unsupported input type");
-    }
-
-    let bitmap: ImageData | null = null;
-    try {
-      const magic = buffer.slice(0, 16);
-      const format =
-        this._config.decoder === "auto" || !this._config.decoder
-          ? (ImageKitProcessor.getFormatFromMagicBytes(magic) ?? "image/png")
-          : this._config.decoder;
-
-      if (format in typeHandlers) {
-        const result = await typeHandlers[format].decode(
-          buffer.buffer as ArrayBuffer,
-        );
-        if (result) {
-          bitmap = result;
-        }
-      }
-    } catch (err) {
-      console.log(err);
-      bitmap = null;
-    }
-
-    return { buffer, bitmap };
-  }
-}
-
-/**
- * Main Factory class for creating ImageKit instances and pipelines
- */
-export class ImageKitFactory {
-  // Input-based factory methods
-  static async fromFile(
-    file: File,
-    config?: ProcessingConfig,
-  ): Promise<ImageKit> {
-    return ImageKit.from(file, config);
-  }
-
-  static async fromUrl(
-    url: string,
-    config?: ProcessingConfig,
-  ): Promise<ImageKit> {
-    return ImageKit.from(url, config);
-  }
-
-  static async fromBuffer(
-    buffer: ArrayBuffer | Uint8Array,
-    config?: ProcessingConfig,
-  ): Promise<ImageKit> {
-    return ImageKit.from(buffer, config);
-  }
-
-  static async fromBlob(
-    blob: Blob,
-    config?: ProcessingConfig,
-  ): Promise<ImageKit> {
-    return ImageKit.from(blob, config);
-  }
-
-  // Format-specific factory methods
-  static async fromPng(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-  ): Promise<ImageKit> {
-    return ImageKit.from(input, { decoder: "image/png" });
-  }
-
-  static async fromJpeg(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-  ): Promise<ImageKit> {
-    return ImageKit.from(input, { decoder: "image/jpeg" });
-  }
-
-  static async fromWebp(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-  ): Promise<ImageKit> {
-    return ImageKit.from(input, { decoder: "image/webp" });
-  }
-
-  static async fromAvif(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-  ): Promise<ImageKit> {
-    return ImageKit.from(input, { decoder: "image/avif" });
-  }
-
-  // Pipeline factory methods
-  static createPipeline(config?: ProcessingConfig): ImageKitPipeline {
-    return new ImageKitPipeline(config);
-  }
-
-  // Preset pipelines
-  static createThumbnailPipeline(size: number = 150): ImageKitPipeline {
-    return new ImageKitPipeline({ encoder: "image/jpeg", quality: 80 }).resize({
-      width: size,
-      height: size,
-      fit: "cover",
-    });
-  }
-
-  static createWebOptimizedPipeline(maxWidth: number = 1920): ImageKitPipeline {
-    return new ImageKitPipeline({ encoder: "image/webp", quality: 85 }).resize({
-      width: maxWidth,
-      fit: "inside",
-    });
-  }
-
-  static createCompressionPipeline(quality: number = 60): ImageKitPipeline {
-    return new ImageKitPipeline({ encoder: "image/jpeg", quality });
-  }
-
-  // Template-based factory
-  static createFromTemplate(template: PipelineTemplate): ImageKitPipeline {
-    const pipeline = new ImageKitPipeline({ encoder: template.outputFormat });
-    template.operations.forEach((op) => {
-      switch (op.type) {
-        case "resize":
-          pipeline.resize(op.params);
-          break;
-        case "rotate":
-          pipeline.rotate(op.params.angle, op.params.color);
-          break;
-        case "flip":
-          pipeline.flip(op.params.direction);
-          break;
-        case "crop":
-          pipeline.crop(op.params);
-          break;
-      }
-    });
-    return pipeline;
-  }
-
-  // Strategy factory
-  static createWithStrategy(
-    strategy: "speed" | "quality" | "size",
-  ): (config?: ProcessingConfig) => ImageKitPipeline {
-    const strategies = {
-      speed: { encoder: "image/jpeg" as MimeType, quality: 70 },
-      quality: { encoder: "image/png" as MimeType, preserveMetadata: true },
-      size: { encoder: "image/webp" as MimeType, quality: 60 },
-    };
-
-    return (config?: ProcessingConfig) => {
-      return new ImageKitPipeline({ ...strategies[strategy], ...config });
-    };
-  }
-}
-
-/**
- * ImageKit Builder - updated to work with factory pattern
- */
-export class ImageKit {
-  private _buffer: Uint8Array;
-  private _bitmap: ImageData | null;
-  private _operations: ImageOperation[] = [];
-  private _config: ProcessingConfig;
-
-  private constructor(
-    buffer: Uint8Array,
-    bitmap: ImageData | null,
-    config: ProcessingConfig = {},
+  if (
+    magic[0] === 0x52 &&
+    magic[1] === 0x49 &&
+    magic[2] === 0x46 &&
+    magic[3] === 0x46 &&
+    magic[8] === 0x57 &&
+    magic[9] === 0x45 &&
+    magic[10] === 0x42 &&
+    magic[11] === 0x50
   ) {
-    this._buffer = buffer;
-    this._bitmap = bitmap;
-    this._config = config;
+    return "image/webp";
+  }
+  if (
+    magic[0] === 0x00 &&
+    magic[1] === 0x00 &&
+    magic[2] === 0x00 &&
+    magic[3] === 0x0c &&
+    magic[4] === 0x6a &&
+    magic[5] === 0x58 &&
+    magic[6] === 0x4c &&
+    magic[7] === 0x20
+  ) {
+    return "image/jxl";
+  }
+  if (
+    magic[0] === 0x00 &&
+    magic[1] === 0x00 &&
+    magic[2] === 0x00 &&
+    magic[3] === 0x1c &&
+    magic[4] === 0x66 &&
+    magic[5] === 0x74 &&
+    magic[6] === 0x79 &&
+    magic[7] === 0x70 &&
+    magic[8] === 0x61 &&
+    magic[9] === 0x76 &&
+    magic[10] === 0x69 &&
+    magic[11] === 0x66
+  ) {
+    return "image/avif";
+  }
+  if (
+    magic[0] === 0x71 &&
+    magic[1] === 0x6f &&
+    magic[2] === 0x69 &&
+    magic[3] === 0x66
+  ) {
+    return "image/qoi";
+  }
+  return undefined;
+};
+
+// Input loading function
+export const loadInput = async (
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+  config: ProcessingConfig = {},
+): Promise<{ buffer: Uint8Array; bitmap: ImageData | null }> => {
+  let buffer: Uint8Array;
+
+  if (typeof input === "string") {
+    const res = await fetch(input);
+    buffer = new Uint8Array(await res.arrayBuffer());
+  } else if (input instanceof Blob || input instanceof File) {
+    buffer = new Uint8Array(await input.arrayBuffer());
+  } else if (input instanceof ArrayBuffer) {
+    buffer = new Uint8Array(input);
+  } else if (input instanceof Uint8Array) {
+    buffer = input;
+  } else {
+    throw new Error("Unsupported input type");
   }
 
-  // Updated factory method with config support
-  static async from(
-    input: ArrayBuffer | Uint8Array | Blob | File | string,
-    config: ProcessingConfig = {},
-  ): Promise<ImageKit> {
-    let buffer: Uint8Array;
+  let bitmap: ImageData | null = null;
+  try {
+    const magic = buffer.slice(0, 16);
+    const format =
+      config.decoder === "auto" || !config.decoder
+        ? (getFormatFromMagicBytes(magic) ?? "image/png")
+        : config.decoder;
 
-    if (typeof input === "string") {
-      const res = await fetch(input);
-      buffer = new Uint8Array(await res.arrayBuffer());
-    } else if (input instanceof Blob || input instanceof File) {
-      buffer = new Uint8Array(await input.arrayBuffer());
-    } else if (input instanceof ArrayBuffer) {
-      buffer = new Uint8Array(input);
-    } else if (input instanceof Uint8Array) {
-      buffer = input;
-    } else {
-      throw new Error("Unsupported input type");
-    }
-
-    let bitmap: ImageData | null = null;
-    try {
-      const magic = buffer.slice(0, 16);
-      const format =
-        config.decoder === "auto" || !config.decoder
-          ? (ImageKitProcessor.getFormatFromMagicBytes(magic) ?? "image/png")
-          : config.decoder;
-
-      if (format in typeHandlers) {
-        const result = await typeHandlers[format].decode(
-          buffer.buffer as ArrayBuffer,
-        );
-        if (result) {
-          bitmap = result;
-        }
+    if (format in typeHandlers) {
+      const result = await typeHandlers[format].decode(
+        buffer.buffer as ArrayBuffer,
+      );
+      if (result) {
+        bitmap = result;
       }
-    } catch (err) {
-      console.log(err);
-      bitmap = null;
     }
-
-    return new ImageKit(buffer, bitmap, config);
+  } catch (err) {
+    console.log(err);
+    bitmap = null;
   }
 
-  // Builder methods
-  resize(opts: ResizeOptions): this {
-    this._operations.push({ type: "resize", params: opts });
-    return this;
+  return { buffer, bitmap };
+};
+
+// Core processor creation function
+export const createImageProcessor = async (
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+  config: ProcessingConfig = {},
+): Promise<ImageProcessor> => {
+  const { buffer, bitmap } = await loadInput(input, config);
+  return { buffer, bitmap, config };
+};
+
+// Operation application functions
+export const applyOperation = async (
+  processor: ImageProcessor,
+  operation: ImageOperation,
+): Promise<ImageProcessor> => {
+  if (!processor.bitmap) return processor;
+
+  let newBitmap = processor.bitmap;
+
+  switch (operation.type) {
+    case "resize":
+      newBitmap = await resizeImage(newBitmap, operation.params);
+      break;
+    case "rotate":
+      newBitmap = await rotateImage(
+        newBitmap,
+        operation.params.angle,
+        operation.params.color,
+      );
+      break;
+    case "flip":
+      newBitmap = await flipImage(newBitmap, operation.params.direction);
+      break;
+    case "crop":
+      newBitmap = await cropImage(newBitmap, operation.params);
+      break;
   }
 
-  rotate(angle: number, color: Color): this {
-    this._operations.push({ type: "rotate", params: { angle, color } });
-    return this;
+  return {
+    ...processor,
+    bitmap: newBitmap,
+  };
+};
+
+export const applyOperations = async (
+  processor: ImageProcessor,
+  operations: ImageOperation[],
+): Promise<ImageProcessor> => {
+  let currentProcessor = processor;
+  for (const operation of operations) {
+    currentProcessor = await applyOperation(currentProcessor, operation);
+  }
+  return currentProcessor;
+};
+
+// Encoding functions
+export const encodeProcessor = async (
+  processor: ImageProcessor,
+  opts: OutputOptions,
+): Promise<Uint8Array> => {
+  const format = processor.config.encoder || opts.format;
+  const handler = typeHandlers[format];
+
+  if (!handler || !processor.bitmap) {
+    throw new Error("Failed to encode into format");
   }
 
-  flip(direction: FlipDirection): this {
-    this._operations.push({ type: "flip", params: { direction } });
-    return this;
+  const encodeOptions = {
+    width: processor.bitmap.width,
+    height: processor.bitmap.height,
+    quality: processor.config.quality,
+    ...opts,
+  };
+
+  const result = await handler.encode(processor.bitmap, encodeOptions);
+  return new Uint8Array(result);
+};
+
+export const toBuffer = async (
+  processor: ImageProcessor,
+  opts: OutputOptions,
+): Promise<Uint8Array> => {
+  if (!processor.bitmap) return processor.buffer;
+  return encodeProcessor(processor, opts);
+};
+
+export const toBlob = async (
+  processor: ImageProcessor,
+  opts: OutputOptions,
+): Promise<Blob> => {
+  const buffer = await toBuffer(processor, opts);
+  const format = processor.config.encoder || opts.format;
+  return new Blob([buffer], { type: format });
+};
+
+export const toDataURL = async (
+  processor: ImageProcessor,
+  opts: OutputOptions,
+): Promise<string> => {
+  const buffer = await toBuffer(processor, opts);
+  const format = processor.config.encoder || opts.format;
+  const base64 = btoa(String.fromCharCode(...buffer));
+  return `data:${format};base64,${base64}`;
+};
+
+// Operation factory functions (curried for composition)
+export const resize =
+  (opts: ResizeOptions) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "resize", params: opts });
+
+export const rotate =
+  (angle: number, color: Color) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "rotate", params: { angle, color } });
+
+export const flip =
+  (direction: FlipDirection) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "flip", params: { direction } });
+
+export const crop =
+  (options: CropOptions) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "crop", params: options });
+
+// Composition utilities
+export const pipe =
+  <T>(...fns: Array<(arg: T) => Promise<T>>) =>
+  async (initial: T): Promise<T> => {
+    let result = initial;
+    for (const fn of fns) {
+      result = await fn(result);
+    }
+    return result;
+  };
+
+export const compose = <T>(...fns: Array<(arg: T) => Promise<T>>) =>
+  pipe(...fns.reverse());
+
+// Pipeline creation functions
+export const createPipeline = (config: ProcessingConfig = {}): Pipeline => ({
+  operations: [],
+  config,
+});
+
+export const addOperation = (
+  pipeline: Pipeline,
+  operation: ImageOperation,
+): Pipeline => ({
+  ...pipeline,
+  operations: [...pipeline.operations, operation],
+});
+
+export const addResize = (pipeline: Pipeline, opts: ResizeOptions): Pipeline =>
+  addOperation(pipeline, { type: "resize", params: opts });
+
+export const addRotate = (
+  pipeline: Pipeline,
+  angle: number,
+  color: Color,
+): Pipeline =>
+  addOperation(pipeline, { type: "rotate", params: { angle, color } });
+
+export const addFlip = (
+  pipeline: Pipeline,
+  direction: FlipDirection,
+): Pipeline => addOperation(pipeline, { type: "flip", params: { direction } });
+
+export const addCrop = (pipeline: Pipeline, options: CropOptions): Pipeline =>
+  addOperation(pipeline, { type: "crop", params: options });
+
+// Pipeline execution
+export const processPipeline = async (
+  pipeline: Pipeline,
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+  outputOpts: OutputOptions,
+): Promise<Uint8Array> => {
+  const processor = await createImageProcessor(input, pipeline.config);
+  const processedProcessor = await applyOperations(
+    processor,
+    pipeline.operations,
+  );
+  return toBuffer(processedProcessor, outputOpts);
+};
+
+export const processPipelineToBlob = async (
+  pipeline: Pipeline,
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+  outputOpts?: OutputOptions,
+): Promise<Blob> => {
+  const defaultOpts: OutputOptions = {
+    format: pipeline.config.encoder || "image/png",
+    ...outputOpts,
+  };
+
+  const processor = await createImageProcessor(input, pipeline.config);
+  const processedProcessor = await applyOperations(
+    processor,
+    pipeline.operations,
+  );
+  return toBlob(processedProcessor, defaultOpts);
+};
+
+export const processPipelineToDataURL = async (
+  pipeline: Pipeline,
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+  outputOpts?: OutputOptions,
+): Promise<string> => {
+  const defaultOpts: OutputOptions = {
+    format: pipeline.config.encoder || "image/png",
+    ...outputOpts,
+  };
+
+  const processor = await createImageProcessor(input, pipeline.config);
+  const processedProcessor = await applyOperations(
+    processor,
+    pipeline.operations,
+  );
+  return toDataURL(processedProcessor, defaultOpts);
+};
+
+// Factory functions
+export const createImageProcessorFromFile =
+  (config?: ProcessingConfig) => (file: File) =>
+    createImageProcessor(file, config);
+
+export const createImageProcessorFromUrl =
+  (config?: ProcessingConfig) => (url: string) =>
+    createImageProcessor(url, config);
+
+export const createImageProcessorFromBuffer =
+  (config?: ProcessingConfig) => (buffer: ArrayBuffer | Uint8Array) =>
+    createImageProcessor(buffer, config);
+
+export const createImageProcessorFromBlob =
+  (config?: ProcessingConfig) => (blob: Blob) =>
+    createImageProcessor(blob, config);
+
+// Format-specific factories
+export const createPngProcessor = (
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+) => createImageProcessor(input, { decoder: "image/png" });
+
+export const createJpegProcessor = (
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+) => createImageProcessor(input, { decoder: "image/jpeg" });
+
+export const createWebpProcessor = (
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+) => createImageProcessor(input, { decoder: "image/webp" });
+
+export const createAvifProcessor = (
+  input: ArrayBuffer | Uint8Array | Blob | File | string,
+) => createImageProcessor(input, { decoder: "image/avif" });
+
+// Preset pipeline factories
+export const createThumbnailPipeline = (size = 150): Pipeline =>
+  addResize(createPipeline({ encoder: "image/jpeg", quality: 80 }), {
+    width: size,
+    height: size,
+    fit: "cover",
+  });
+
+export const createWebOptimizedPipeline = (maxWidth = 1920): Pipeline =>
+  addResize(createPipeline({ encoder: "image/webp", quality: 85 }), {
+    width: maxWidth,
+    fit: "inside",
+  });
+
+export const createCompressionPipeline = (quality = 60): Pipeline =>
+  createPipeline({ encoder: "image/jpeg", quality });
+
+// Template-based factory
+export const createPipelineFromTemplate = (
+  template: PipelineTemplate,
+): Pipeline => {
+  let pipeline = createPipeline({ encoder: template.outputFormat });
+
+  for (const operation of template.operations) {
+    pipeline = addOperation(pipeline, operation);
   }
 
-  crop(options: CropOptions): this {
-    this._operations.push({ type: "crop", params: options });
-    return this;
-  }
+  return pipeline;
+};
 
-  // Terminal methods
-  async toBuffer(opts: OutputOptions): Promise<Uint8Array> {
-    const processor = new ImageKitProcessor(
-      this._buffer,
-      this._bitmap,
-      this._config,
-    );
-    await processor.applyOperations(this._operations);
-    return processor.toBuffer(opts);
-  }
+// Strategy factories
+export const createSpeedOptimizedPipeline = (
+  config?: ProcessingConfig,
+): Pipeline =>
+  createPipeline({ encoder: "image/jpeg", quality: 70, ...config });
 
-  async toBlob(opts?: OutputOptions): Promise<Blob> {
-    const defaultOpts: OutputOptions = {
-      format: this._config.encoder || "image/png",
-      ...opts,
-    };
+export const createQualityOptimizedPipeline = (
+  config?: ProcessingConfig,
+): Pipeline =>
+  createPipeline({ encoder: "image/png", preserveMetadata: true, ...config });
 
-    const processor = new ImageKitProcessor(
-      this._buffer,
-      this._bitmap,
-      this._config,
-    );
-    await processor.applyOperations(this._operations);
-    return processor.toBlob(defaultOpts);
-  }
+export const createSizeOptimizedPipeline = (
+  config?: ProcessingConfig,
+): Pipeline =>
+  createPipeline({ encoder: "image/webp", quality: 60, ...config });
 
-  async toDataURL(opts?: OutputOptions): Promise<string> {
-    const defaultOpts: OutputOptions = {
-      format: this._config.encoder || "image/png",
-      ...opts,
-    };
-
-    const processor = new ImageKitProcessor(
-      this._buffer,
-      this._bitmap,
-      this._config,
-    );
-    await processor.applyOperations(this._operations);
-    return processor.toDataURL(defaultOpts);
-  }
+// Functional Builder Pattern (for those who prefer method chaining)
+export interface FunctionalBuilder {
+  resize: (opts: ResizeOptions) => FunctionalBuilder;
+  rotate: (angle: number, color: Color) => FunctionalBuilder;
+  flip: (direction: FlipDirection) => FunctionalBuilder;
+  crop: (options: CropOptions) => FunctionalBuilder;
+  toBuffer: (
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    opts: OutputOptions,
+  ) => Promise<Uint8Array>;
+  toBlob: (
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    opts?: OutputOptions,
+  ) => Promise<Blob>;
+  toDataURL: (
+    input: ArrayBuffer | Uint8Array | Blob | File | string,
+    opts?: OutputOptions,
+  ) => Promise<string>;
 }
+
+export const createFunctionalBuilder = (
+  config: ProcessingConfig = {},
+): FunctionalBuilder => {
+  let pipeline = createPipeline(config);
+
+  const builder: FunctionalBuilder = {
+    resize: (opts: ResizeOptions) => {
+      pipeline = addResize(pipeline, opts);
+      return builder;
+    },
+
+    rotate: (angle: number, color: Color) => {
+      pipeline = addRotate(pipeline, angle, color);
+      return builder;
+    },
+
+    flip: (direction: FlipDirection) => {
+      pipeline = addFlip(pipeline, direction);
+      return builder;
+    },
+
+    crop: (options: CropOptions) => {
+      pipeline = addCrop(pipeline, options);
+      return builder;
+    },
+
+    toBuffer: (
+      input: ArrayBuffer | Uint8Array | Blob | File | string,
+      opts: OutputOptions,
+    ) => processPipeline(pipeline, input, opts),
+
+    toBlob: (
+      input: ArrayBuffer | Uint8Array | Blob | File | string,
+      opts?: OutputOptions,
+    ) => processPipelineToBlob(pipeline, input, opts),
+
+    toDataURL: (
+      input: ArrayBuffer | Uint8Array | Blob | File | string,
+      opts?: OutputOptions,
+    ) => processPipelineToDataURL(pipeline, input, opts),
+  };
+
+  return builder;
+};
+
+// Convenience exports that mimic the original API
+export const ImageKit = {
+  from: createImageProcessor,
+  fromFile: createImageProcessorFromFile(),
+  fromUrl: createImageProcessorFromUrl(),
+  fromBuffer: createImageProcessorFromBuffer(),
+  fromBlob: createImageProcessorFromBlob(),
+  fromPng: createPngProcessor,
+  fromJpeg: createJpegProcessor,
+  fromWebp: createWebpProcessor,
+  fromAvif: createAvifProcessor,
+};
+
+export const ImageKitPipeline = {
+  create: createPipeline,
+  createThumbnail: createThumbnailPipeline,
+  createWebOptimized: createWebOptimizedPipeline,
+  createCompression: createCompressionPipeline,
+  createFromTemplate: createPipelineFromTemplate,
+  createSpeedOptimized: createSpeedOptimizedPipeline,
+  createQualityOptimized: createQualityOptimizedPipeline,
+  createSizeOptimized: createSizeOptimizedPipeline,
+};
+
+export const ImageKitFactory = {
+  createBuilder: createFunctionalBuilder,
+  createPipeline,
+  createThumbnailPipeline,
+  createWebOptimizedPipeline,
+  createCompressionPipeline,
+  createPipelineFromTemplate,
+};
