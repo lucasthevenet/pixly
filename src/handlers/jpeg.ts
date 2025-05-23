@@ -13,15 +13,30 @@ const JPEG_DEC_WASM =
 
 export const JpegHandler: ImageHandler = {
   async decode(buffer) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initDecode(JPEG_DEC_WASM);
     }
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const jpegDecWasmBuffer = fs.readFileSync(JPEG_DEC_WASM);
+      const jpegDecWasmModule = await WebAssembly.compile(jpegDecWasmBuffer);
+      await initDecode(jpegDecWasmModule);
+    }
+
     return decode(buffer);
   },
   async encode(image, options) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initEncode(JPEG_ENC_WASM);
     }
+
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const jpegEncWasmBuffer = fs.readFileSync(JPEG_ENC_WASM);
+      const jpegEncWasmModule = await WebAssembly.compile(jpegEncWasmBuffer);
+      await initEncode(jpegEncWasmModule);
+    }
+
     return encode(image, options);
   },
 };

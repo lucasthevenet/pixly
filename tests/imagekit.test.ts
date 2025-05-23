@@ -29,7 +29,7 @@ import {
   createSizeOptimizedPipeline,
   type ProcessingConfig,
   type PipelineTemplate,
-} from "../src/imagekit";
+} from "../src/index";
 
 describe("ImageKit Functional API surface", () => {
   it("should have factory functions", () => {

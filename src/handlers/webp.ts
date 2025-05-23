@@ -13,15 +13,30 @@ const WEBP_DEC_WASM =
 
 export const WebpHandler: ImageHandler = {
   async decode(buffer) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initDecode(WEBP_DEC_WASM);
     }
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const webpDecWasmBuffer = fs.readFileSync(WEBP_DEC_WASM);
+      const webpDecWasmModule = await WebAssembly.compile(webpDecWasmBuffer);
+      await initDecode(webpDecWasmModule);
+    }
+
     return decode(buffer);
   },
   async encode(image, options) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initEncode(WEBP_ENC_WASM);
     }
+
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const webpEncWasmBuffer = fs.readFileSync(WEBP_ENC_WASM);
+      const webpEncWasmModule = await WebAssembly.compile(webpEncWasmBuffer);
+      await initEncode(webpEncWasmModule);
+    }
+
     return encode(image, options);
   },
 };

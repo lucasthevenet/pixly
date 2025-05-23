@@ -13,8 +13,14 @@ const AVIF_DEC_WASM =
 
 export const AvifHandler: ImageHandler = {
   async decode(buffer) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initDecode(AVIF_DEC_WASM);
+    }
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const avifDecWasmBuffer = fs.readFileSync(AVIF_DEC_WASM);
+      const avifDecWasmModule = await WebAssembly.compile(avifDecWasmBuffer);
+      await initDecode(avifDecWasmModule);
     }
 
     const result = await decode(buffer);
@@ -26,8 +32,15 @@ export const AvifHandler: ImageHandler = {
     return result;
   },
   async encode(image) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initEncode(AVIF_ENC_WASM);
+    }
+
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const avifEncWasmBuffer = fs.readFileSync(AVIF_ENC_WASM);
+      const avifEncWasmModule = await WebAssembly.compile(avifEncWasmBuffer);
+      await initEncode(avifEncWasmModule);
     }
 
     return encode(image);

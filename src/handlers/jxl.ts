@@ -11,15 +11,30 @@ const JXL_DEC_WASM = "node_modules/@jsquash/jxl/codec/dec/squoosh_jxl_dec.wasm";
 
 export const JxlHandler: ImageHandler = {
   async decode(buffer) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initDecode(JXL_DEC_WASM);
     }
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const jxlDecWasmBuffer = fs.readFileSync(JXL_DEC_WASM);
+      const jxlDecWasmModule = await WebAssembly.compile(jxlDecWasmBuffer);
+      await initDecode(jxlDecWasmModule);
+    }
+
     return decode(buffer);
   },
   async encode(image, options) {
-    if (isRunningInNode || isRunningInCloudFlareWorkers) {
+    if (isRunningInCloudFlareWorkers) {
       await initEncode(JXL_ENC_WASM);
     }
+
+    if (isRunningInNode) {
+      const fs = await import("node:fs");
+      const jxlEncWasmBuffer = fs.readFileSync(JXL_ENC_WASM);
+      const jxlEncWasmModule = await WebAssembly.compile(jxlEncWasmBuffer);
+      await initEncode(jxlEncWasmModule);
+    }
+
     return encode(image, options);
   },
 };
