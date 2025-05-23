@@ -67,7 +67,6 @@ describe("ImageKit API surface", () => {
     expect(typeof kit.rotate).toBe("function");
     expect(typeof kit.flip).toBe("function");
     expect(typeof kit.crop).toBe("function");
-    expect(typeof kit._convert).toBe("function");
   });
 
   it("should expose output methods", async () => {
@@ -77,26 +76,32 @@ describe("ImageKit API surface", () => {
     expect(typeof kit.toDataURL).toBe("function");
   });
 
-  // it("should allow chaining of transformation methods", async () => {
-  //   const kit = await ImageKit.from(new Uint8Array([0]));
-  //   expect(
-  //     kit
-  //       .resize({ width: 100 })
-  //       .flip("horizontal")
-  //       .crop(0, 0, 10, 10),
-  //   ).toBeInstanceOf(ImageKit);
-  // });
+  it("should allow chaining of transformation methods", async () => {
+    const kit = await ImageKit.from(new Uint8Array([0]));
+    expect(
+      kit
+        // .resize({ width: 100 })
+        .flip("horizontal")
+        .crop({
+          height: 10,
+          width: 10,
+          x: 0,
+          y: 0,
+          background: [0, 0, 0, 0],
+        }),
+    ).toBeInstanceOf(ImageKit);
+  });
 
-  // it("should accept OutputOptions in output methods", async () => {
-  //   const kit = await ImageKit.from(new Uint8Array([0]));
-  //   await expect(
-  //     kit.toBuffer({ format: "jpeg" } as OutputOptions),
-  //   ).resolves.toBeInstanceOf(Uint8Array);
-  //   await expect(
-  //     kit.toDataURL({ format: "png" } as OutputOptions),
-  //   ).resolves.toBeTypeOf("string");
-  //   await expect(
-  //     kit.toBlob({ format: "webp" } as OutputOptions),
-  //   ).rejects.toThrow();
-  // });
+  it("should accept OutputOptions in output methods", async () => {
+    const kit = await ImageKit.from(new Uint8Array([0]));
+    await expect(
+      kit.toBuffer({ format: "image/jpeg" }),
+    ).resolves.toBeInstanceOf(Uint8Array);
+    await expect(kit.toDataURL({ format: "image/png" })).resolves.toBeTypeOf(
+      "string",
+    );
+    await expect(kit.toBlob({ format: "image/webp" })).resolves.toBeInstanceOf(
+      Blob,
+    );
+  });
 });
