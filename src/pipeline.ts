@@ -220,15 +220,3 @@ export const createSizeOptimizedPipeline = (
   config?: ProcessingConfig,
 ): Pipeline =>
   createPipeline({ encoder: "image/webp", quality: 60, ...config });
-
-// ImageKitPipeline object for convenience
-export const ImageKitPipeline = {
-  create: createPipeline,
-  createThumbnail: createThumbnailPipeline,
-  createWebOptimized: createWebOptimizedPipeline,
-  createCompression: createCompressionPipeline,
-  createFromTemplate: createPipelineFromTemplate,
-  createSpeedOptimized: createSpeedOptimizedPipeline,
-  createQualityOptimized: createQualityOptimizedPipeline,
-  createSizeOptimized: createSizeOptimizedPipeline,
-};

@@ -1,6 +1,3 @@
-// Main index file for ImageKit functional implementation
-
-// Re-export core functionality
 export {
   createImageProcessor,
   applyOperation,
@@ -19,7 +16,6 @@ export {
   loadInput,
 } from "./core";
 
-// Re-export types
 export type {
   OutputOptions,
   ProcessingConfig,
@@ -34,7 +30,6 @@ export type {
   PipelineTemplate,
 } from "./core";
 
-// Re-export pipeline functionality
 export {
   createPipeline,
   addOperation,
@@ -52,16 +47,12 @@ export {
   createSpeedOptimizedPipeline,
   createQualityOptimizedPipeline,
   createSizeOptimizedPipeline,
-  ImageKitPipeline,
 } from "./pipeline";
 
-// Re-export factory functionality
-export { createFunctionalBuilder, ImageKitFactory } from "./factory";
+export { createFunctionalBuilder } from "./factory";
 
-// Re-export functional builder type
 export type { FunctionalBuilder } from "./factory";
 
-// Re-export relevant types from operations and base types
 export type { ResizeOptions } from "./operations/js-resize";
 export type {
   MimeType,

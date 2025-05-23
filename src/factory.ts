@@ -96,13 +96,3 @@ export const createFunctionalBuilder = (
 
   return createBuilder(pipeline);
 };
-
-// Main factory object
-export const ImageKitFactory = {
-  createBuilder: createFunctionalBuilder,
-  createPipeline,
-  createThumbnailPipeline,
-  createWebOptimizedPipeline,
-  createCompressionPipeline,
-  createPipelineFromTemplate,
-};

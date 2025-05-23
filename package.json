@@ -13,6 +13,26 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
+    },
+    "./factory": {
+      "import": {
+        "types": "./dist/factory.d.mts",
+        "default": "./dist/factory.mjs"
+      },
+      "require": {
+        "types": "./dist/factory.d.cts",
+        "default": "./dist/factory.cjs"
+      }
+    },
+    "./pipeline": {
+      "import": {
+        "types": "./dist/pipeline.d.mts",
+        "default": "./dist/pipeline.mjs"
+      },
+      "require": {
+        "types": "./dist/pipeline.d.cts",
+        "default": "./dist/pipeline.cjs"
+      }
     }
   },
   "files": [

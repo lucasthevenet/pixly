@@ -73,7 +73,11 @@ export interface CropOperation extends Operation {
   params: CropOptions;
 }
 
-export type ImageOperation = ResizeOperation | RotateOperation | FlipOperation | CropOperation;
+export type ImageOperation =
+  | ResizeOperation
+  | RotateOperation
+  | FlipOperation
+  | CropOperation;
 
 export interface Pipeline {
   operations: ImageOperation[];
@@ -87,7 +91,9 @@ export interface PipelineTemplate {
 }
 
 // Core utility functions
-export const getFormatFromMagicBytes = (magic: Uint8Array): MimeType | undefined => {
+export const getFormatFromMagicBytes = (
+  magic: Uint8Array,
+): MimeType | undefined => {
   if (
     magic[0] === 0x89 &&
     magic[1] === 0x50 &&
@@ -153,7 +159,7 @@ export const getFormatFromMagicBytes = (magic: Uint8Array): MimeType | undefined
 // Input loading function
 export const loadInput = async (
   input: ArrayBuffer | Uint8Array | Blob | File | string,
-  config: ProcessingConfig = {}
+  config: ProcessingConfig = {},
 ): Promise<{ buffer: Uint8Array; bitmap: ImageData | null }> => {
   let buffer: Uint8Array;
 
@@ -173,12 +179,15 @@ export const loadInput = async (
   let bitmap: ImageData | null = null;
   try {
     const magic = buffer.slice(0, 16);
-    const format = config.decoder === "auto" || !config.decoder
-      ? getFormatFromMagicBytes(magic) ?? "image/png"
-      : config.decoder;
+    const format =
+      config.decoder === "auto" || !config.decoder
+        ? (getFormatFromMagicBytes(magic) ?? "image/png")
+        : config.decoder;
 
     if (format in typeHandlers) {
-      const result = await typeHandlers[format].decode(buffer.buffer as ArrayBuffer);
+      const result = await typeHandlers[format].decode(
+        buffer.buffer as ArrayBuffer,
+      );
       if (result) {
         bitmap = result;
       }
@@ -194,7 +203,7 @@ export const loadInput = async (
 // Core processor creation function
 export const createImageProcessor = async (
   input: ArrayBuffer | Uint8Array | Blob | File | string,
-  config: ProcessingConfig = {}
+  config: ProcessingConfig = {},
 ): Promise<ImageProcessor> => {
   const { buffer, bitmap } = await loadInput(input, config);
   return { buffer, bitmap, config };
@@ -203,7 +212,7 @@ export const createImageProcessor = async (
 // Operation application functions
 export const applyOperation = async (
   processor: ImageProcessor,
-  operation: ImageOperation
+  operation: ImageOperation,
 ): Promise<ImageProcessor> => {
   if (!processor.bitmap) {
     return {
@@ -218,7 +227,11 @@ export const applyOperation = async (
       newBitmap = await resizeImage(newBitmap, operation.params);
       break;
     case "rotate":
-      newBitmap = await rotateImage(newBitmap, operation.params.angle, operation.params.color);
+      newBitmap = await rotateImage(
+        newBitmap,
+        operation.params.angle,
+        operation.params.color,
+      );
       break;
     case "flip":
       newBitmap = await flipImage(newBitmap, operation.params.direction);
@@ -236,7 +249,7 @@ export const applyOperation = async (
 
 export const applyOperations = async (
   processor: ImageProcessor,
-  operations: ImageOperation[]
+  operations: ImageOperation[],
 ): Promise<ImageProcessor> => {
   let currentProcessor = processor;
   for (const operation of operations) {
@@ -248,7 +261,7 @@ export const applyOperations = async (
 // Encoding functions
 export const encodeProcessor = async (
   processor: ImageProcessor,
-  opts: OutputOptions
+  opts: OutputOptions,
 ): Promise<Uint8Array> => {
   const format = processor.config.encoder || opts.format;
   const handler = typeHandlers[format];
@@ -270,7 +283,7 @@ export const encodeProcessor = async (
 
 export const toBuffer = async (
   processor: ImageProcessor,
-  opts: OutputOptions
+  opts: OutputOptions,
 ): Promise<Uint8Array> => {
   if (!processor.bitmap) return processor.buffer;
   return encodeProcessor(processor, opts);
@@ -278,7 +291,7 @@ export const toBuffer = async (
 
 export const toBlob = async (
   processor: ImageProcessor,
-  opts: OutputOptions
+  opts: OutputOptions,
 ): Promise<Blob> => {
   const buffer = await toBuffer(processor, opts);
   const format = processor.config.encoder || opts.format;
@@ -287,7 +300,7 @@ export const toBlob = async (
 
 export const toDataURL = async (
   processor: ImageProcessor,
-  opts: OutputOptions
+  opts: OutputOptions,
 ): Promise<string> => {
   const buffer = await toBuffer(processor, opts);
   const format = processor.config.encoder || opts.format;
@@ -296,20 +309,29 @@ export const toDataURL = async (
 };
 
 // Operation factory functions (curried for composition)
-export const resize = (opts: ResizeOptions) => (processor: ImageProcessor): Promise<ImageProcessor> =>
-  applyOperation(processor, { type: "resize", params: opts });
+export const resize =
+  (opts: ResizeOptions) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "resize", params: opts });
 
-export const rotate = (angle: number, color: Color) => (processor: ImageProcessor): Promise<ImageProcessor> =>
-  applyOperation(processor, { type: "rotate", params: { angle, color } });
+export const rotate =
+  (angle: number, color: Color) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "rotate", params: { angle, color } });
 
-export const flip = (direction: FlipDirection) => (processor: ImageProcessor): Promise<ImageProcessor> =>
-  applyOperation(processor, { type: "flip", params: { direction } });
+export const flip =
+  (direction: FlipDirection) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "flip", params: { direction } });
 
-export const crop = (options: CropOptions) => (processor: ImageProcessor): Promise<ImageProcessor> =>
-  applyOperation(processor, { type: "crop", params: options });
+export const crop =
+  (options: CropOptions) =>
+  (processor: ImageProcessor): Promise<ImageProcessor> =>
+    applyOperation(processor, { type: "crop", params: options });
 
 // Composition utilities
-export const pipe = <T>(...fns: Array<(arg: T) => Promise<T>>) => 
+export const pipe =
+  <T>(...fns: Array<(arg: T) => Promise<T>>) =>
   async (initial: T): Promise<T> => {
     let result = initial;
     for (const fn of fns) {
@@ -318,5 +340,5 @@ export const pipe = <T>(...fns: Array<(arg: T) => Promise<T>>) =>
     return result;
   };
 
-export const compose = <T>(...fns: Array<(arg: T) => Promise<T>>) => 
+export const compose = <T>(...fns: Array<(arg: T) => Promise<T>>) =>
   pipe(...fns.reverse());
