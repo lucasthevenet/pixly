@@ -44,9 +44,6 @@ export {
   createWebOptimizedPipeline,
   createCompressionPipeline,
   createPipelineFromTemplate,
-  createSpeedOptimizedPipeline,
-  createQualityOptimizedPipeline,
-  createSizeOptimizedPipeline,
 } from "./pipeline";
 
 export { createFunctionalBuilder } from "./factory";
