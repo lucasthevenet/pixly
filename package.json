@@ -34,9 +34,7 @@
 			}
 		}
 	},
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"scripts": {
 		"build": "unbuild",
 		"check": "biome check",
@@ -44,7 +42,8 @@
 		"prepack": "unbuild",
 		"test": "vitest",
 		"typecheck": "tsc --noEmit",
-		"release": "bun run build && changeset publish"
+		"release": "bun run build && changeset publish",
+		"version": "changeset version && bun check:fix"
 	},
 	"dependencies": {
 		"@jsquash/avif": "^2.1.0",
