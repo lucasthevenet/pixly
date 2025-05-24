@@ -26,7 +26,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "bun"
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -53,7 +59,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "bun"
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
