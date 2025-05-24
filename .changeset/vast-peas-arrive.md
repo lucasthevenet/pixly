@@ -1,0 +1,5 @@
+---
+"pixly": minor
+---
+
+Initial release
