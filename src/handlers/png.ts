@@ -8,31 +8,55 @@ import {
 
 const PNG_WASM = "node_modules/@jsquash/png/codec/pkg/squoosh_png_bg.wasm";
 
+let isDecodeInitialized = false;
+let isEncodeInitialized = false;
+
+async function initializeDecoder(): Promise<void> {
+	if (isDecodeInitialized) return;
+
+	if (isRunningInCloudFlareWorkers) {
+		await initDecode(PNG_WASM);
+		isDecodeInitialized = true;
+		return;
+	}
+
+	if (isRunningInNode) {
+		const fs = await import("node:fs");
+		const pngWasmBuffer = fs.readFileSync(PNG_WASM);
+		const pngWasmModule = await WebAssembly.compile(pngWasmBuffer);
+		await initDecode(pngWasmModule);
+		isDecodeInitialized = true;
+		return;
+	}
+}
+
+async function initializeEncoder(): Promise<void> {
+	if (isEncodeInitialized) return;
+
+	if (isRunningInCloudFlareWorkers) {
+		await initEncode(PNG_WASM);
+		isEncodeInitialized = true;
+		return;
+	}
+
+	if (isRunningInNode) {
+		const fs = await import("node:fs");
+		const pngWasmBuffer = fs.readFileSync(PNG_WASM);
+		const pngWasmModule = await WebAssembly.compile(pngWasmBuffer);
+		await initEncode(pngWasmModule);
+		isEncodeInitialized = true;
+		return;
+	}
+}
+
 export const PngHandler: ImageHandler = {
 	async decode(buffer) {
-		if (isRunningInCloudFlareWorkers) {
-			await initDecode(PNG_WASM);
-		}
-		if (isRunningInNode) {
-			const fs = await import("node:fs");
-			const pngWasmBuffer = fs.readFileSync(PNG_WASM);
-			const pngWasmModule = await WebAssembly.compile(pngWasmBuffer);
-			await initDecode(pngWasmModule);
-		}
+		await initializeDecoder();
 
 		return decode(buffer, {});
 	},
 	async encode(image) {
-		if (isRunningInCloudFlareWorkers) {
-			await initEncode(PNG_WASM);
-		}
-
-		if (isRunningInNode) {
-			const fs = await import("node:fs");
-			const pngWasmBuffer = fs.readFileSync(PNG_WASM);
-			const pngWasmModule = await WebAssembly.compile(pngWasmBuffer);
-			await initEncode(pngWasmModule);
-		}
+		await initializeEncoder();
 
 		// @ts-expect-error function overload not working
 		return encode(image);

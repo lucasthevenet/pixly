@@ -57,6 +57,14 @@ export type ImagePosition =
 	| ImagePositionVertical
 	| `${ImagePositionHorizontal} ${ImagePositionVertical}`;
 
+export interface ResizeOptions {
+	width: number | null;
+	height: number | null;
+	fit: ImageFit;
+	position: ImagePosition;
+	background: Color;
+}
+
 export type FlipDirection = "horizontal" | "vertical" | "both";
 
 export interface CropOptions {

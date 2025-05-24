@@ -50,7 +50,6 @@ export { createFunctionalBuilder } from "./factory";
 
 export type { FunctionalBuilder } from "./factory";
 
-export type { ResizeOptions } from "./operations/js-resize";
 export type {
 	MimeType,
 	Color,
@@ -58,5 +57,6 @@ export type {
 	CropOptions,
 	TransformOptions,
 	ImageFit,
+	ResizeOptions,
 	ImagePosition,
 } from "./types";

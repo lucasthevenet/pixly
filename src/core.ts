@@ -1,5 +1,3 @@
-// Core types and utilities for ImageKit functional implementation
-
 import { AvifHandler } from "./handlers/avif";
 import { JpegHandler } from "./handlers/jpeg";
 import { JxlHandler } from "./handlers/jxl";
@@ -8,7 +6,8 @@ import { QoiHandler } from "./handlers/qoi";
 import { WebpHandler } from "./handlers/webp";
 import { cropImage } from "./operations/crop";
 import { flipImage } from "./operations/flip";
-import { type ResizeOptions, resizeImage } from "./operations/js-resize";
+import { resizeImage } from "./operations/resize";
+import { resizeImageWasm } from "./operations/resize-wasm";
 import { rotateImage } from "./operations/rotate";
 import type {
 	Color,
@@ -16,6 +15,7 @@ import type {
 	FlipDirection,
 	ImageHandler,
 	MimeType,
+	ResizeOptions,
 	TransformOptions,
 } from "./types";
 
