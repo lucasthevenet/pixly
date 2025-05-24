@@ -24,16 +24,17 @@ export {
 	validateOperationParams,
 	composeOperations,
 	createConditionalOperation,
-	adjustChannels,
-	brightness,
-	contrast,
-	grayscale,
-	sepia,
-	invert,
-	tint,
-	sharpen,
-	pixelate,
 } from "./operations/custom";
+
+export { adjustChannels } from "./operations/adjust-channels";
+export { brightness } from "./operations/brightness";
+export { contrast } from "./operations/contrast";
+export { grayscale } from "./operations/grayscale";
+export { sepia } from "./operations/sepia";
+export { invert } from "./operations/invert";
+export { tint } from "./operations/tint";
+export { sharpen } from "./operations/sharpen";
+export { pixelate } from "./operations/pixelate";
 
 export type {
 	OutputOptions,
@@ -77,8 +78,6 @@ export type {
 	OperationHandler,
 } from "./types";
 
-export type {
-	ChannelOptions,
-	GrayscaleOptions,
-	TintOptions,
-} from "./operations/custom";
+export type { ChannelOptions } from "./operations/adjust-channels";
+export type { GrayscaleOptions } from "./operations/grayscale";
+export type { TintOptions } from "./operations/tint";

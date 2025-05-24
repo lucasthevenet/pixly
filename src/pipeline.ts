@@ -4,19 +4,19 @@ import type {
 	PipelineTemplate,
 	ProcessingConfig,
 } from "./core";
-import type { Operation } from "./types";
 import {
 	applyOperations,
 	createImageProcessor,
+	crop,
 	encodeProcessor,
+	flip,
+	resize,
+	rotate,
 	toBlob,
 	toBuffer,
 	toDataURL,
-	resize,
-	rotate,
-	flip,
-	crop,
 } from "./core";
+import type { Operation } from "./types";
 import type {
 	Color,
 	CropOptions,
@@ -47,8 +47,7 @@ export const addRotate = (
 	pipeline: Pipeline,
 	angle: number,
 	color: Color,
-): Pipeline =>
-	addOperation(pipeline, rotate(angle, color));
+): Pipeline => addOperation(pipeline, rotate(angle, color));
 
 export const addFlip = (
 	pipeline: Pipeline,
