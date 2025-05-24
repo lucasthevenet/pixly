@@ -69,5 +69,6 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/lucasthevenet/pixly.git"
-	}
+	},
+	"license": "MIT"
 }
