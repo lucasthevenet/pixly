@@ -20,161 +20,161 @@
  * THE SOFTWARE.
  */
 
-import type { Color, ImageFit, ImagePosition, ImageData } from "../types";
+import type { Color, ImageData, ImageFit, ImagePosition } from "../types";
 import { getFrameDimensions, getImageDimensions } from "../utils/sizing";
 
 const interpolate = (
-  k: number,
-  kMin: number,
-  vMin: number,
-  kMax: number,
-  vMax: number,
+	k: number,
+	kMin: number,
+	vMin: number,
+	kMax: number,
+	vMax: number,
 ) => {
-  // special case - k is integer
-  if (kMin === kMax) {
-    return vMin;
-  }
+	// special case - k is integer
+	if (kMin === kMax) {
+		return vMin;
+	}
 
-  return Math.round((k - kMin) * vMax + (kMax - k) * vMin);
+	return Math.round((k - kMin) * vMax + (kMax - k) * vMin);
 };
 
 const assign = (
-  src: ImageData,
-  dstBuffer: Uint8ClampedArray,
-  pos: number,
-  x: number,
-  xMin: number,
-  xMax: number,
-  y: number,
-  yMin: number,
-  yMax: number,
-  background: Color,
+	src: ImageData,
+	dstBuffer: Uint8ClampedArray,
+	pos: number,
+	x: number,
+	xMin: number,
+	xMax: number,
+	y: number,
+	yMin: number,
+	yMax: number,
+	background: Color,
 ) => {
-  const result = [0x0, 0x0, 0x0, 0x0];
+	const result = [0x0, 0x0, 0x0, 0x0];
 
-  for (let offset = 0; offset < 4; offset += 1) {
-    let posMin = (yMin * src.width + xMin) * 4 + offset;
-    let posMax = (yMin * src.width + xMax) * 4 + offset;
-    const vMin = interpolate(
-      x,
-      xMin,
-      src.data[posMin]!,
-      xMax,
-      src.data[posMax]!,
-    );
+	for (let offset = 0; offset < 4; offset += 1) {
+		let posMin = (yMin * src.width + xMin) * 4 + offset;
+		let posMax = (yMin * src.width + xMax) * 4 + offset;
+		const vMin = interpolate(
+			x,
+			xMin,
+			src.data[posMin]!,
+			xMax,
+			src.data[posMax]!,
+		);
 
-    // special case, y is integer
-    if (yMax === yMin) {
-      result[offset] = vMin;
-    } else {
-      posMin = (yMax * src.width + xMin) * 4 + offset;
-      posMax = (yMax * src.width + xMax) * 4 + offset;
-      const vMax = interpolate(
-        x,
-        xMin,
-        src.data[posMin]!,
-        xMax,
-        src.data[posMax]!,
-      );
+		// special case, y is integer
+		if (yMax === yMin) {
+			result[offset] = vMin;
+		} else {
+			posMin = (yMax * src.width + xMin) * 4 + offset;
+			posMax = (yMax * src.width + xMax) * 4 + offset;
+			const vMax = interpolate(
+				x,
+				xMin,
+				src.data[posMin]!,
+				xMax,
+				src.data[posMax]!,
+			);
 
-      result[offset] = interpolate(y, yMin, vMin, yMax, vMax);
-    }
-  }
+			result[offset] = interpolate(y, yMin, vMin, yMax, vMax);
+		}
+	}
 
-  if (result.every((i) => i === 0)) {
-    dstBuffer.set(background, pos);
-  } else {
-    dstBuffer.set(result, pos);
-  }
+	if (result.every((i) => i === 0)) {
+		dstBuffer.set(background, pos);
+	} else {
+		dstBuffer.set(result, pos);
+	}
 };
 
 export interface ResizeOptions {
-  width: number | null;
-  height: number | null;
-  fit: ImageFit;
-  position: ImagePosition;
-  background: Color;
+	width: number | null;
+	height: number | null;
+	fit: ImageFit;
+	position: ImagePosition;
+	background: Color;
 }
 
 export const resizeImage = async (
-  src: ImageData,
-  opts: ResizeOptions,
+	src: ImageData,
+	opts: ResizeOptions,
 ): Promise<ImageData> => {
-  if (!opts.width && !opts.height) {
-    throw new Error("At least one dimension must be provided!");
-  }
+	if (!opts.width && !opts.height) {
+		throw new Error("At least one dimension must be provided!");
+	}
 
-  const { frameWidth, frameHeight } = getFrameDimensions(
-    src.width,
-    src.height,
-    opts.width,
-    opts.height,
-    opts.fit,
-  );
+	const { frameWidth, frameHeight } = getFrameDimensions(
+		src.width,
+		src.height,
+		opts.width,
+		opts.height,
+		opts.fit,
+	);
 
-  const { imageWidth, imageHeight, xOffset, yOffset } = getImageDimensions(
-    src.width,
-    src.height,
-    frameWidth,
-    frameHeight,
-    opts.fit,
-    opts.position,
-  );
+	const { imageWidth, imageHeight, xOffset, yOffset } = getImageDimensions(
+		src.width,
+		src.height,
+		frameWidth,
+		frameHeight,
+		opts.fit,
+		opts.position,
+	);
 
-  const dstBuffer = new Uint8ClampedArray(frameWidth * frameHeight * 4);
+	const dstBuffer = new Uint8ClampedArray(frameWidth * frameHeight * 4);
 
-  for (let i = 0; i < dstBuffer.length; i += 4) {
-    dstBuffer.set(opts.background, i);
-  }
+	for (let i = 0; i < dstBuffer.length; i += 4) {
+		dstBuffer.set(opts.background, i);
+	}
 
-  for (
-    let row = 0;
-    row < imageHeight && row + yOffset < frameHeight;
-    row += 1
-  ) {
-    for (
-      let col = 0;
-      col < imageWidth && col + xOffset < frameWidth;
-      col += 1
-    ) {
-      if (
-        col + xOffset < 0 ||
-        col + xOffset >= frameWidth ||
-        row + yOffset < 0 ||
-        row + yOffset >= frameHeight
-      ) {
-        continue;
-      }
+	for (
+		let row = 0;
+		row < imageHeight && row + yOffset < frameHeight;
+		row += 1
+	) {
+		for (
+			let col = 0;
+			col < imageWidth && col + xOffset < frameWidth;
+			col += 1
+		) {
+			if (
+				col + xOffset < 0 ||
+				col + xOffset >= frameWidth ||
+				row + yOffset < 0 ||
+				row + yOffset >= frameHeight
+			) {
+				continue;
+			}
 
-      const posDst = ((row + yOffset) * frameWidth + (col + xOffset)) * 4;
-      // x & y in src coordinates
-      const x = (col * src.width) / imageWidth;
-      const xMin = Math.floor(x);
-      const xMax = Math.min(Math.ceil(x), src.width - 1);
+			const posDst = ((row + yOffset) * frameWidth + (col + xOffset)) * 4;
+			// x & y in src coordinates
+			const x = (col * src.width) / imageWidth;
+			const xMin = Math.floor(x);
+			const xMax = Math.min(Math.ceil(x), src.width - 1);
 
-      const y = (row * src.height) / imageHeight;
-      const yMin = Math.floor(y);
-      const yMax = Math.min(Math.ceil(y), src.height - 1);
+			const y = (row * src.height) / imageHeight;
+			const yMin = Math.floor(y);
+			const yMax = Math.min(Math.ceil(y), src.height - 1);
 
-      assign(
-        src,
-        dstBuffer,
-        posDst,
-        x,
-        xMin,
-        xMax,
-        y,
-        yMin,
-        yMax,
-        opts.background,
-      );
-    }
-  }
+			assign(
+				src,
+				dstBuffer,
+				posDst,
+				x,
+				xMin,
+				xMax,
+				y,
+				yMin,
+				yMax,
+				opts.background,
+			);
+		}
+	}
 
-  return {
-    data: dstBuffer,
-    width: frameWidth,
-    height: frameHeight,
-    colorSpace: "srgb",
-  };
+	return {
+		data: dstBuffer,
+		width: frameWidth,
+		height: frameHeight,
+		colorSpace: "srgb",
+	};
 };

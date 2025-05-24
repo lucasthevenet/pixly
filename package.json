@@ -1,75 +1,73 @@
 {
-  "name": "pixly",
-  "version": "0.0.1",
-  "type": "module",
-  "private": true,
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "./factory": {
-      "import": {
-        "types": "./dist/factory.d.mts",
-        "default": "./dist/factory.mjs"
-      },
-      "require": {
-        "types": "./dist/factory.d.cts",
-        "default": "./dist/factory.cjs"
-      }
-    },
-    "./pipeline": {
-      "import": {
-        "types": "./dist/pipeline.d.mts",
-        "default": "./dist/pipeline.mjs"
-      },
-      "require": {
-        "types": "./dist/pipeline.d.cts",
-        "default": "./dist/pipeline.cjs"
-      }
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "unbuild",
-    "check": "biome check",
-    "check:fix": "biome check --write",
-    "prepack": "unbuild",
-    "test": "vitest",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@jsquash/avif": "^2.1.0",
-    "@jsquash/jpeg": "^1.6.0",
-    "@jsquash/jxl": "^1.2.0",
-    "@jsquash/oxipng": "^2.3.0",
-    "@jsquash/png": "^3.1.0",
-    "@jsquash/qoi": "^1.1.0",
-    "@jsquash/resize": "^2.1.0",
-    "@jsquash/webp": "^1.5.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "1.9.4",
-    "@changesets/cli": "^2.29.4",
-    "@edge-runtime/vm": "^5.0.0",
-    "@types/node": "^22.15.19",
-    "@vitest/browser": "^3.1.4",
-    "jest-image-snapshot": "^6.5.1",
-    "playwright": "^1.52.0",
-    "turbo": "^2.5.3",
-    "unbuild": "^3.5.0",
-    "vitest": "^3.1.4"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/lucasthevenet/pixly.git"
-  }
+	"name": "pixly",
+	"version": "0.0.1",
+	"type": "module",
+	"private": true,
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.mts",
+				"default": "./dist/index.mjs"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			}
+		},
+		"./factory": {
+			"import": {
+				"types": "./dist/factory.d.mts",
+				"default": "./dist/factory.mjs"
+			},
+			"require": {
+				"types": "./dist/factory.d.cts",
+				"default": "./dist/factory.cjs"
+			}
+		},
+		"./pipeline": {
+			"import": {
+				"types": "./dist/pipeline.d.mts",
+				"default": "./dist/pipeline.mjs"
+			},
+			"require": {
+				"types": "./dist/pipeline.d.cts",
+				"default": "./dist/pipeline.cjs"
+			}
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "unbuild",
+		"check": "biome check",
+		"check:fix": "biome check --write",
+		"prepack": "unbuild",
+		"test": "vitest",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@jsquash/avif": "^2.1.0",
+		"@jsquash/jpeg": "^1.6.0",
+		"@jsquash/jxl": "^1.2.0",
+		"@jsquash/oxipng": "^2.3.0",
+		"@jsquash/png": "^3.1.0",
+		"@jsquash/qoi": "^1.1.0",
+		"@jsquash/resize": "^2.1.0",
+		"@jsquash/webp": "^1.5.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@changesets/cli": "^2.29.4",
+		"@edge-runtime/vm": "^5.0.0",
+		"@types/node": "^22.15.19",
+		"@vitest/browser": "^3.1.4",
+		"jest-image-snapshot": "^6.5.1",
+		"playwright": "^1.52.0",
+		"turbo": "^2.5.3",
+		"unbuild": "^3.5.0",
+		"vitest": "^3.1.4"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/lucasthevenet/pixly.git"
+	}
 }

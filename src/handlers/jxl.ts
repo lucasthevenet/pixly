@@ -2,39 +2,39 @@ import decode, { init as initDecode } from "@jsquash/jxl/decode";
 import encode, { init as initEncode } from "@jsquash/jxl/encode";
 import type { ImageHandler } from "../types";
 import {
-  isRunningInCloudFlareWorkers,
-  isRunningInNode,
+	isRunningInCloudFlareWorkers,
+	isRunningInNode,
 } from "../utils/environment";
 
 const JXL_ENC_WASM = "node_modules/@jsquash/jxl/codec/enc/jxl_enc.wasm";
 const JXL_DEC_WASM = "node_modules/@jsquash/jxl/codec/dec/jxl_dec.wasm";
 
 export const JxlHandler: ImageHandler = {
-  async decode(buffer) {
-    if (isRunningInCloudFlareWorkers) {
-      await initDecode(JXL_DEC_WASM);
-    }
-    if (isRunningInNode) {
-      const fs = await import("node:fs");
-      const jxlDecWasmBuffer = fs.readFileSync(JXL_DEC_WASM);
-      const jxlDecWasmModule = await WebAssembly.compile(jxlDecWasmBuffer);
-      await initDecode(jxlDecWasmModule);
-    }
+	async decode(buffer) {
+		if (isRunningInCloudFlareWorkers) {
+			await initDecode(JXL_DEC_WASM);
+		}
+		if (isRunningInNode) {
+			const fs = await import("node:fs");
+			const jxlDecWasmBuffer = fs.readFileSync(JXL_DEC_WASM);
+			const jxlDecWasmModule = await WebAssembly.compile(jxlDecWasmBuffer);
+			await initDecode(jxlDecWasmModule);
+		}
 
-    return decode(buffer);
-  },
-  async encode(image, options) {
-    if (isRunningInCloudFlareWorkers) {
-      await initEncode(JXL_ENC_WASM);
-    }
+		return decode(buffer);
+	},
+	async encode(image, options) {
+		if (isRunningInCloudFlareWorkers) {
+			await initEncode(JXL_ENC_WASM);
+		}
 
-    if (isRunningInNode) {
-      const fs = await import("node:fs");
-      const jxlEncWasmBuffer = fs.readFileSync(JXL_ENC_WASM);
-      const jxlEncWasmModule = await WebAssembly.compile(jxlEncWasmBuffer);
-      await initEncode(jxlEncWasmModule);
-    }
+		if (isRunningInNode) {
+			const fs = await import("node:fs");
+			const jxlEncWasmBuffer = fs.readFileSync(JXL_ENC_WASM);
+			const jxlEncWasmModule = await WebAssembly.compile(jxlEncWasmBuffer);
+			await initEncode(jxlEncWasmModule);
+		}
 
-    return encode(image, options);
-  },
+		return encode(image, options);
+	},
 };
