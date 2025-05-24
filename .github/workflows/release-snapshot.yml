@@ -59,6 +59,11 @@ jobs:
             ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
 
+      - name: Setup NPM Authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "SHORT_SHA=`echo ${{ github.sha }} | cut -c1-8`" >> $GITHUB_ENV
 
@@ -69,7 +74,7 @@ jobs:
         run: bun changeset version --snapshot ${SHORT_SHA}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_CONFIG_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Build
         run: bun run build
@@ -78,4 +83,4 @@ jobs:
         run: bun changeset publish --no-git-tag --tag snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_CONFIG_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,6 +1,6 @@
 {
 	"name": "pixly",
-	"version": "0.0.1",
+	"version": "0.0.0",
 	"type": "module",
 	"exports": {
 		".": {
@@ -67,6 +67,6 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/lucasthevenet/pixly.git"
+		"url": "git+https://github.com/lucasthevenet/pixly.git"
 	}
 }

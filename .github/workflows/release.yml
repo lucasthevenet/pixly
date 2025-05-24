@@ -39,6 +39,11 @@ jobs:
             ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
 
+      - name: Setup NPM Authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" >> ~/.npmrc
+
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
@@ -49,4 +54,4 @@ jobs:
           publish: bun release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_CONFIG_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
