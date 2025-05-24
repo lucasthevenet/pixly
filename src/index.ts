@@ -14,6 +14,7 @@ export {
 	pipe,
 	compose,
 	getFormatFromMagicBytes,
+	createOperation,
 	loadInput,
 } from "./core";
 
@@ -58,5 +59,3 @@ export type {
 	OperationFunction,
 	OperationHandler,
 } from "./types";
-
-export { createOperation } from "./types";

@@ -18,10 +18,10 @@ import type {
 	MimeType,
 	Operation,
 	OperationFunction,
+	OperationHandler,
 	ResizeOptions,
 	TransformOptions,
 } from "./types";
-import { createOperation } from "./types";
 
 export const typeHandlers: Record<MimeType, ImageHandler> = {
 	"image/png": PngHandler,
@@ -47,8 +47,6 @@ export interface ImageProcessor {
 	bitmap: ImageData | null;
 	config: ProcessingConfig;
 }
-
-// Legacy operation interfaces removed - all operations are now functions
 
 export interface Pipeline {
 	operations: Operation[];
@@ -198,7 +196,9 @@ export const applyOperation = async (
 			bitmap: newBitmap,
 		};
 	} catch (error) {
-		throw new Error(`Operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		throw new Error(
+			`Operation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+		);
 	}
 };
 
@@ -267,7 +267,10 @@ export const resize = (opts: ResizeOptions): OperationFunction =>
 	createOperation(resizeImage, opts);
 
 export const rotate = (angle: number, color: Color): OperationFunction =>
-	createOperation((bitmap, params) => rotateImage(bitmap, params.degrees, params.background), { degrees: angle, background: color });
+	createOperation(
+		(bitmap, params) => rotateImage(bitmap, params.degrees, params.background),
+		{ degrees: angle, background: color },
+	);
 
 export const flip = (direction: FlipDirection): OperationFunction =>
 	createOperation(flipImage, direction);
@@ -278,7 +281,13 @@ export const crop = (options: CropOptions): OperationFunction =>
 export const blur = (radius: number): OperationFunction =>
 	createOperation(blurImage, radius);
 
-// Composition utilities
+export function createOperation<T>(
+	handler: OperationHandler<T>,
+	params: T,
+): OperationFunction {
+	return (bitmap: ImageData) => handler(bitmap, params);
+}
+
 export const pipe =
 	<T>(...fns: Array<(arg: T) => Promise<T>>) =>
 	async (initial: T): Promise<T> => {

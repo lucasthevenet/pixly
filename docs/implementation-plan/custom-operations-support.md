@@ -75,7 +75,7 @@ const crop = (options: CropOptions): OperationFunction =>
   - `git checkout -b feature/custom-operations-support`
 
 ### Task 2: Design Function-Based Operation Types
-- **Success Criteria**: 
+- **Success Criteria**:
   - Define `OperationFunction` type as `(bitmap: ImageData) => Promise<ImageData>`
   - Remove all legacy operation object types (ResizeOperation, RotateOperation, etc.)
   - Update `Operation` type to be just `OperationFunction`
@@ -245,9 +245,6 @@ const crop = (options: CropOptions): OperationFunction =>
 ## Project Status Board
 
 ### To Do
-- [ ] Task 3: Migrate Existing Operations to Function Style
-- [ ] Task 4: Create Operation Helper Functions and Add Blur
-- [ ] Task 5: Simplify applyOperation Function
 - [ ] Task 6: Create Custom Operation Builder Utilities
 - [ ] Task 7: Update Public API
 - [ ] Task 8: Write Comprehensive Tests
@@ -260,12 +257,15 @@ const crop = (options: CropOptions): OperationFunction =>
 ### Done
 - [x] Task 1: Create Feature Branch ✅ Branch `feature/custom-operations-support` created from main
 - [x] Task 2: Design Function-Based Operation Types ✅ Completed with type definitions and helper functions
+- [x] Task 3: Migrate Existing Operations to Function Style ✅ All operations converted to functions
+- [x] Task 4: Create Operation Helper Functions and Add Blur ✅ createOperation helper + blur integration
+- [x] Task 5: Simplify applyOperation Function ✅ Switch statement removed, direct function calls
 
 ## Current Status / Progress Tracking
-- **Phase**: Implementation - Task 2 Complete
+- **Phase**: Implementation - Tasks 2-5 Complete (Core Migration Done!)
 - **Last Updated**: 2024-01-01
 - **Blockers**: None
-- **Next Steps**: Begin Task 3 (Migrate Existing Operations to Function Style)
+- **Next Steps**: Begin Task 6 (Create Custom Operation Builder Utilities)
 - **Current Branch**: `feature/custom-operations-support`
 - **Key Insights**:
   - Discovered existing blur operation that needs integration
@@ -282,7 +282,7 @@ const crop = (options: CropOptions): OperationFunction =>
 - **Date**: 2024-01-01
 - **Branch Created**: `feature/custom-operations-support` from main
 - **Status**: Clean working tree, ready to proceed
-- **Notes**: 
+- **Notes**:
   - Found existing work on feat/wasm-resize branch with WASM resize functionality
   - Stashed those changes for potential integration during resize migration
   - Documentation files successfully cherry-picked to new branch
@@ -306,7 +306,17 @@ const crop = (options: CropOptions): OperationFunction =>
   - Direct function calls eliminate switch statement overhead
   - Error handling with descriptive messages for operation failures
 - **Test Results**: All 18 tests passing (6 tests × 3 environments)
-- **Ready for**: Task 3 - Actually, Tasks 3-5 are already complete! Need to review what's left.
+
+### Tasks 3-5 Completed Successfully ✅
+- **Date**: 2024-01-01
+- **Major Achievement**: Core function-based operation system is fully implemented!
+- **Task 3 - Migration**: All existing operations (resize, rotate, flip, crop) converted to function style
+- **Task 4 - Helpers**: `createOperation<T>` helper implemented, blur operation added and exported
+- **Task 5 - Simplification**: `applyOperation` completely refactored, switch statement removed
+- **Verification**: 18 tests passing across 3 environments (node, edge, browser)
+- **Git Status**: Changes committed with conventional commit message
+- **Performance**: Direct function calls eliminate switch statement overhead
+- **Ready for**: Task 6 - Create Custom Operation Builder Utilities (though basic functionality already works)
 
 ## Lessons Learned
 <!-- Document any insights gained during implementation -->

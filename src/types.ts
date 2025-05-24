@@ -122,12 +122,7 @@ export type OperationFunction = (bitmap: ImageData) => Promise<ImageData>;
 export type Operation = OperationFunction;
 
 // Helper type for creating parameterized operations
-export type OperationHandler<T = any> = (bitmap: ImageData, params: T) => Promise<ImageData>;
-
-// Utility function for creating operations with parameters
-export function createOperation<T>(
-	handler: OperationHandler<T>,
-	params: T
-): OperationFunction {
-	return (bitmap: ImageData) => handler(bitmap, params);
-}
+export type OperationHandler<T> = (
+	bitmap: ImageData,
+	params: T,
+) => Promise<ImageData>;

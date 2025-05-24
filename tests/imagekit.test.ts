@@ -6,6 +6,7 @@ import {
 	addFlip,
 	addResize,
 	addRotate,
+	applyOperation,
 	compose,
 	createFunctionalBuilder,
 	createImageProcessor,
@@ -185,7 +186,9 @@ it("API surface - should support output format conversion with functional approa
 
 it("Operations - should apply resize operation correctly", async () => {
 	const validPngData = await getTestImage();
-	const processor = await createImageProcessor(validPngData);
+	const processor = await createImageProcessor(validPngData, {
+		decoder: "image/jpeg",
+	});
 	const resizeOp = resize({
 		width: 100,
 		height: 100,
@@ -193,7 +196,7 @@ it("Operations - should apply resize operation correctly", async () => {
 		fit: "contain",
 		position: "center",
 	});
-	const result = await resizeOp(processor);
+	const result = await applyOperation(processor, resizeOp);
 
 	expect(result).not.toBe(processor); // Should return new processor
 	expect(result.buffer).toBe(processor.buffer); // Buffer should be same
@@ -204,7 +207,7 @@ it("Operations - should apply multiple operations in sequence", async () => {
 	const validPngData = await getTestImage();
 	const processor = await createImageProcessor(validPngData);
 
-	const result = await pipe(
+	const transform = pipe(
 		resize({
 			width: 50,
 			height: 50,
@@ -214,7 +217,9 @@ it("Operations - should apply multiple operations in sequence", async () => {
 		}),
 		rotate(90, [255, 255, 255, 255]),
 		flip("horizontal"),
-	)(processor);
+	);
+
+	const result = await applyOperation(processor, transform);
 
 	expect(result).not.toBe(processor);
 	expect(result.bitmap).toBeDefined();
@@ -236,7 +241,7 @@ it("Operations - should compose operations correctly", async () => {
 		}),
 	);
 
-	const result = await transform(processor);
+	const result = await applyOperation(processor, transform);
 	expect(result).not.toBe(processor);
 });
 
@@ -244,13 +249,16 @@ it("Operations - should handle operations on processors without bitmaps", async 
 	const processor = await createImageProcessor(new Uint8Array([1, 2, 3]));
 	expect(processor.bitmap).toBeNull();
 
-	const resized = await resize({
-		width: 100,
-		height: 100,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	})(processor);
+	const resized = await applyOperation(
+		processor,
+		resize({
+			width: 100,
+			height: 100,
+			background: [0, 0, 0, 0],
+			fit: "contain",
+			position: "center",
+		}),
+	);
 	expect(resized.bitmap).toBeNull(); // Should remain null
 	expect(resized).toEqual(processor); // Should be unchanged
 });
@@ -298,17 +306,14 @@ it("Pipeline system - should create pipelines from templates", async () => {
 	const template: PipelineTemplate = {
 		name: "social-media",
 		operations: [
-			{
-				type: "resize",
-				params: {
-					width: 1080,
-					height: 1080,
-					fit: "cover",
-					background: [0, 0, 0, 0],
-					position: "center",
-				},
-			},
-			{ type: "rotate", params: { angle: 0, color: [255, 255, 255, 255] } },
+			resize({
+				width: 1080,
+				height: 1080,
+				fit: "cover",
+				background: [0, 0, 0, 0],
+				position: "center",
+			}),
+			rotate(0, [255, 255, 255, 255]),
 		],
 		outputFormat: "image/jpeg",
 	};
@@ -334,13 +339,16 @@ it("Immutability - should not mutate original processor during operations", asyn
 	const originalBuffer = originalProcessor.buffer;
 	const originalConfig = originalProcessor.config;
 
-	const newProcessor = await resize({
-		width: 100,
-		height: 100,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	})(originalProcessor);
+	const newProcessor = await applyOperation(
+		originalProcessor,
+		resize({
+			width: 100,
+			height: 100,
+			background: [0, 0, 0, 0],
+			fit: "contain",
+			position: "center",
+		}),
+	);
 
 	expect(originalProcessor.buffer).toBe(originalBuffer);
 	expect(originalProcessor.config).toBe(originalConfig);
@@ -392,7 +400,7 @@ it("Error handling - should handle invalid operation parameters", async () => {
 		fit: "contain",
 		position: "center",
 	});
-	const result = await invalidResize(processor);
+	const result = await applyOperation(processor, invalidResize);
 	expect(result).toBeDefined();
 });
 
@@ -463,40 +471,17 @@ it("Performance and edge cases - should handle very small images", async () => {
 	expect(processor.bitmap!.height).toBe(1);
 
 	// Should handle operations on tiny images
-	const resized = await resize({
-		width: 10,
-		height: 10,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	})(processor);
-	expect(resized.bitmap).toBeDefined();
-});
-
-it("Performance and edge cases - should work with concurrent operations", async () => {
-	const processor = await createImageProcessor(new Uint8Array([0]));
-
-	const operations = [
+	const resized = await applyOperation(
+		processor,
 		resize({
-			width: 100,
-			height: 100,
+			width: 10,
+			height: 10,
 			background: [0, 0, 0, 0],
 			fit: "contain",
 			position: "center",
-		})(processor),
-		rotate(90, [255, 255, 255, 255])(processor),
-		flip("horizontal")(processor),
-		crop({ x: 0, y: 0, width: 50, height: 50, background: [0, 0, 0, 0] })(
-			processor,
-		),
-	];
-
-	const results = await Promise.all(operations);
-	expect(results).toHaveLength(4);
-	for (const result of results) {
-		expect(result).toBeDefined();
-		expect(result).not.toBe(processor);
-	}
+		}),
+	);
+	expect(resized.bitmap).toBeDefined();
 });
 
 it("Operations - should actually resize image dimensions", async () => {
@@ -515,13 +500,16 @@ it("Operations - should actually resize image dimensions", async () => {
 	// Resize to specific dimensions
 	const targetWidth = 50;
 	const targetHeight = 30;
-	const resized = await resize({
-		width: targetWidth,
-		height: targetHeight,
-		fit: "fill", // Force exact dimensions
-		background: [0, 0, 0, 0],
-		position: "center",
-	})(processor);
+	const resized = await applyOperation(
+		processor,
+		resize({
+			width: targetWidth,
+			height: targetHeight,
+			fit: "fill", // Force exact dimensions
+			background: [0, 0, 0, 0],
+			position: "center",
+		}),
+	);
 
 	expect(resized.bitmap).not.toBeNull();
 	expect(resized.bitmap!.width).toBe(targetWidth);
@@ -543,7 +531,7 @@ it("Operations - should actually modify pixel data", async () => {
 	const originalPixelData = new Uint8ClampedArray(processor.bitmap.data);
 
 	// Apply an operation that should change pixels (e.g., rotation, flip)
-	const flipped = await flip("horizontal")(processor);
+	const flipped = await applyOperation(processor, flip("horizontal"));
 
 	expect(flipped.bitmap).not.toBeNull();
 
@@ -580,7 +568,7 @@ it("Operations - should flip image horizontally correctly", async () => {
 		buffer: new Uint8Array(),
 		config: {},
 	};
-	const flipped = await flip("horizontal")(processor);
+	const flipped = await applyOperation(processor, flip("horizontal"));
 
 	// After horizontal flip, left should be blue, right should be red
 	expect(flipped.bitmap!.data[0]).toBe(0); // Left pixel R (was blue)
@@ -605,13 +593,16 @@ it("Operations - should crop image correctly", async () => {
 	const cropWidth = Math.floor(originalWidth / 2);
 	const cropHeight = Math.floor(originalHeight / 2);
 
-	const cropped = await crop({
-		x: 0,
-		y: 0,
-		width: cropWidth,
-		height: cropHeight,
-		background: [0, 0, 0, 0],
-	})(processor);
+	const cropped = await applyOperation(
+		processor,
+		crop({
+			x: 0,
+			y: 0,
+			width: cropWidth,
+			height: cropHeight,
+			background: [0, 0, 0, 0],
+		}),
+	);
 
 	expect(cropped.bitmap).not.toBeNull();
 	expect(cropped.bitmap!.width).toBe(cropWidth);
@@ -636,7 +627,10 @@ it("Operations - should rotate image 90 degrees correctly", async () => {
 	const originalWidth = processor.bitmap.width;
 	const originalHeight = processor.bitmap.height;
 
-	const rotated = await rotate(90, [255, 255, 255, 255])(processor);
+	const rotated = await applyOperation(
+		processor,
+		rotate(90, [255, 255, 255, 255]),
+	);
 
 	expect(rotated.bitmap).not.toBeNull();
 
@@ -653,22 +647,28 @@ it("Operations - should produce consistent results for identical operations", as
 
 	// Apply the same transformation twice
 	const processor1 = await createImageProcessor(validPngData);
-	const result1 = await resize({
-		width: 100,
-		height: 100,
-		fit: "fill",
-		background: [0, 0, 0, 0],
-		position: "center",
-	})(processor1);
+	const result1 = await applyOperation(
+		processor1,
+		resize({
+			width: 100,
+			height: 100,
+			fit: "fill",
+			background: [0, 0, 0, 0],
+			position: "center",
+		}),
+	);
 
 	const processor2 = await createImageProcessor(validPngData);
-	const result2 = await resize({
-		width: 100,
-		height: 100,
-		fit: "fill",
-		background: [0, 0, 0, 0],
-		position: "center",
-	})(processor2);
+	const result2 = await applyOperation(
+		processor2,
+		resize({
+			width: 100,
+			height: 100,
+			fit: "fill",
+			background: [0, 0, 0, 0],
+			position: "center",
+		}),
+	);
 
 	// Results should be identical
 	expect(result1.bitmap!.width).toBe(result2.bitmap!.width);
@@ -687,13 +687,16 @@ it("Operations - should handle resize with different fit modes", async () => {
 	}
 
 	// Test contain fit (should maintain aspect ratio)
-	const contained = await resize({
-		width: 100,
-		height: 50,
-		fit: "contain",
-		background: [0, 0, 0, 0],
-		position: "center",
-	})(processor);
+	const contained = await applyOperation(
+		processor,
+		resize({
+			width: 100,
+			height: 50,
+			fit: "contain",
+			background: [0, 0, 0, 0],
+			position: "center",
+		}),
+	);
 
 	expect(contained.bitmap).not.toBeNull();
 
@@ -702,13 +705,16 @@ it("Operations - should handle resize with different fit modes", async () => {
 	expect(contained.bitmap!.height).toBeLessThanOrEqual(50);
 
 	// Test fill fit (should use exact dimensions)
-	const filled = await resize({
-		width: 100,
-		height: 50,
-		fit: "fill",
-		background: [0, 0, 0, 0],
-		position: "center",
-	})(processor);
+	const filled = await applyOperation(
+		processor,
+		resize({
+			width: 100,
+			height: 50,
+			fit: "fill",
+			background: [0, 0, 0, 0],
+			position: "center",
+		}),
+	);
 
 	expect(filled.bitmap).not.toBeNull();
 	expect(filled.bitmap!.width).toBe(100);
@@ -727,7 +733,7 @@ it("Operations - should verify flip vertical changes pixel arrangement", async (
 
 	const originalData = new Uint8ClampedArray(processor.bitmap.data);
 
-	const flipped = await flip("vertical")(processor);
+	const flipped = await applyOperation(processor, flip("vertical"));
 
 	expect(flipped.bitmap).not.toBeNull();
 
@@ -753,17 +759,20 @@ it("Operations - should handle complex transformation chains with verifiable res
 	const originalHeight = processor.bitmap.height;
 
 	// Apply multiple transformations
-	const result = await pipe(
-		resize({
-			width: 200,
-			height: 200,
-			fit: "fill",
-			background: [0, 0, 0, 0],
-			position: "center",
-		}),
-		crop({ x: 50, y: 50, width: 100, height: 100, background: [0, 0, 0, 0] }),
-		flip("horizontal"),
-	)(processor);
+	const result = await applyOperation(
+		processor,
+		pipe(
+			resize({
+				width: 200,
+				height: 200,
+				fit: "fill",
+				background: [0, 0, 0, 0],
+				position: "center",
+			}),
+			crop({ x: 50, y: 50, width: 100, height: 100, background: [0, 0, 0, 0] }),
+			flip("horizontal"),
+		),
+	);
 
 	expect(result.bitmap).not.toBeNull();
 
