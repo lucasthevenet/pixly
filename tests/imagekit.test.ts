@@ -143,8 +143,8 @@ it("API surface - pipeline should work with operations", async () => {
 
   const input = await getTestImage("original");
   const result = await processPipeline(pipeline, input, {
-    format: "image/webp",
-    quality: 0.8,
+    format: "image/jpeg",
+    quality: 80,
   });
   expect(result).toBeInstanceOf(Uint8Array);
 });

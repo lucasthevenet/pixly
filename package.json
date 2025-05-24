@@ -43,7 +43,8 @@
     "check": "biome check",
     "check:fix": "biome check --write",
     "prepack": "unbuild",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@jsquash/avif": "^2.1.0",
@@ -57,11 +58,13 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@changesets/cli": "^2.29.4",
     "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^22.15.19",
     "@vitest/browser": "^3.1.4",
     "jest-image-snapshot": "^6.5.1",
     "playwright": "^1.52.0",
+    "turbo": "^2.5.3",
     "unbuild": "^3.5.0",
     "vitest": "^3.1.4"
   },
