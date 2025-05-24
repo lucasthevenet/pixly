@@ -14,11 +14,11 @@ export {
 	pipe,
 	compose,
 	getFormatFromMagicBytes,
-	createOperation,
 	loadInput,
 } from "./core";
 
 export {
+	createOperation,
 	createSafeOperation,
 	isOperationFunction,
 	validateOperationParams,

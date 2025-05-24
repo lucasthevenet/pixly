@@ -6,6 +6,7 @@ import { QoiHandler } from "./handlers/qoi";
 import { WebpHandler } from "./handlers/webp";
 import { blurImage } from "./operations/blur";
 import { cropImage } from "./operations/crop";
+import { createOperation } from "./operations/custom";
 import { flipImage } from "./operations/flip";
 import { resizeImage } from "./operations/resize";
 import { resizeImageWasm } from "./operations/resize-wasm";
@@ -280,13 +281,6 @@ export const crop = (options: CropOptions): OperationFunction =>
 
 export const blur = (radius: number): OperationFunction =>
 	createOperation(blurImage, radius);
-
-export function createOperation<T>(
-	handler: OperationHandler<T>,
-	params: T,
-): OperationFunction {
-	return (bitmap: ImageData) => handler(bitmap, params);
-}
 
 export const pipe =
 	<T>(...fns: Array<(arg: T) => Promise<T>>) =>

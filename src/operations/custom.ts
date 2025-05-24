@@ -1,4 +1,4 @@
-import { ImageData } from "../types";
+import type { ImageData } from "../types";
 import type { OperationFunction, OperationHandler } from "../types";
 
 /**

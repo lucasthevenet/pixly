@@ -1,4 +1,4 @@
-import type { ImageData } from "../types";
+import { ImageData } from "../types";
 import type { OperationFunction } from "../types";
 import { createOperation, validateOperationParams } from "./custom";
 
@@ -17,9 +17,9 @@ export function sepia(intensity = 1): OperationFunction {
 			const newData = new Uint8ClampedArray(bitmap.data);
 
 			for (let i = 0; i < newData.length; i += 4) {
-				const r = newData[i];
-				const g = newData[i + 1];
-				const b = newData[i + 2];
+				const r = newData[i]!;
+				const g = newData[i + 1]!;
+				const b = newData[i + 2]!;
 
 				const newR = Math.min(255, r * 0.393 + g * 0.769 + b * 0.189);
 				const newG = Math.min(255, r * 0.349 + g * 0.686 + b * 0.168);

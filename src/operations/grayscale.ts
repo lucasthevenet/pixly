@@ -1,4 +1,4 @@
-import type { ImageData } from "../types";
+import { ImageData } from "../types";
 import type { OperationFunction } from "../types";
 import { createOperation } from "./custom";
 
@@ -17,9 +17,9 @@ export function grayscale(
 			const newData = new Uint8ClampedArray(bitmap.data);
 
 			for (let i = 0; i < newData.length; i += 4) {
-				const r = newData[i];
-				const g = newData[i + 1];
-				const b = newData[i + 2];
+				const r = newData[i]!;
+				const g = newData[i + 1]!;
+				const b = newData[i + 2]!;
 
 				let gray: number;
 				switch (params.method) {

@@ -1,4 +1,4 @@
-import type { ImageData } from "../types";
+import { ImageData } from "../types";
 import type { OperationFunction } from "../types";
 import { createOperation, validateOperationParams } from "./custom";
 
@@ -40,7 +40,7 @@ export function sharpen(intensity = 1): OperationFunction {
 							for (let kx = -1; kx <= 1; kx++) {
 								const pos = ((y + ky) * width + (x + kx)) * 4 + c;
 								const kernelPos = (ky + 1) * 3 + (kx + 1);
-								sum += bitmap.data[pos] * kernel[kernelPos];
+								sum += bitmap.data[pos]! * kernel[kernelPos]!;
 							}
 						}
 						const pos = (y * width + x) * 4 + c;

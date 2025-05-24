@@ -1,4 +1,4 @@
-import type { ImageData } from "../types";
+import { ImageData } from "../types";
 import type { OperationFunction } from "../types";
 import { createOperation, validateOperationParams } from "./custom";
 
@@ -32,11 +32,11 @@ export function tint(options: TintOptions): OperationFunction {
 			const newData = new Uint8ClampedArray(bitmap.data);
 
 			for (let i = 0; i < newData.length; i += 4) {
-				newData[i] = newData[i] + params.opacity * (params.red - newData[i]);
+				newData[i] = newData[i]! + params.opacity * (params.red - newData[i]!);
 				newData[i + 1] =
-					newData[i + 1] + params.opacity * (params.green - newData[i + 1]);
+					newData[i + 1]! + params.opacity * (params.green - newData[i + 1]!);
 				newData[i + 2] =
-					newData[i + 2] + params.opacity * (params.blue - newData[i + 2]);
+					newData[i + 2]! + params.opacity * (params.blue - newData[i + 2]!);
 			}
 
 			return new ImageData(newData, bitmap.width, bitmap.height);

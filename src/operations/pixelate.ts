@@ -1,4 +1,4 @@
-import type { ImageData } from "../types";
+import { ImageData } from "../types";
 import type { OperationFunction } from "../types";
 import { createOperation, validateOperationParams } from "./custom";
 
@@ -21,19 +21,19 @@ export function pixelate(blockSize: number): OperationFunction {
 			for (let y = 0; y < height; y += blockSize) {
 				for (let x = 0; x < width; x += blockSize) {
 					// Calculate average color for the block
-					let r = 0,
-						g = 0,
-						b = 0,
-						a = 0,
-						count = 0;
+					let r = 0;
+					let g = 0;
+					let b = 0;
+					let a = 0;
+					let count = 0;
 
 					for (let by = y; by < Math.min(y + blockSize, height); by++) {
 						for (let bx = x; bx < Math.min(x + blockSize, width); bx++) {
 							const pos = (by * width + bx) * 4;
-							r += bitmap.data[pos];
-							g += bitmap.data[pos + 1];
-							b += bitmap.data[pos + 2];
-							a += bitmap.data[pos + 3];
+							r += bitmap.data[pos]!;
+							g += bitmap.data[pos + 1]!;
+							b += bitmap.data[pos + 2]!;
+							a += bitmap.data[pos + 3]!;
 							count++;
 						}
 					}
