@@ -1,7 +1,4 @@
-// Factory system for ImageKit functional implementation
-
 import type { OutputOptions, Pipeline, ProcessingConfig } from "./core";
-import type { ResizeOptions } from "./operations/js-resize";
 import {
 	addCrop,
 	addFlip,
@@ -12,7 +9,7 @@ import {
 	processPipelineToBlob,
 	processPipelineToDataURL,
 } from "./pipeline";
-import type { Color, CropOptions, FlipDirection } from "./types";
+import type { Color, CropOptions, FlipDirection, ResizeOptions } from "./types";
 
 // Functional Builder interface
 export interface FunctionalBuilder {

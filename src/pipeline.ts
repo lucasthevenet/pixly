@@ -1,5 +1,3 @@
-// Pipeline system for ImageKit functional implementation
-
 import type {
 	ImageOperation,
 	OutputOptions,
@@ -14,13 +12,13 @@ import {
 	toBuffer,
 	toDataURL,
 } from "./core";
-import type { ResizeOptions } from "./operations/js-resize";
 import type {
 	Color,
 	CropOptions,
 	FlipDirection,
 	ImageFit,
 	ImagePosition,
+	ResizeOptions,
 } from "./types";
 
 // Pipeline creation functions

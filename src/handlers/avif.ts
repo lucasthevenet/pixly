@@ -9,17 +9,50 @@ import {
 const AVIF_ENC_WASM = "node_modules/@jsquash/avif/codec/enc/avif_enc.wasm";
 const AVIF_DEC_WASM = "node_modules/@jsquash/avif/codec/dec/avif_dec.wasm";
 
+let isDecodeInitialized = false;
+let isEncodeInitialized = false;
+
+async function initializeDecoder(): Promise<void> {
+	if (isDecodeInitialized) return;
+
+	if (isRunningInCloudFlareWorkers) {
+		await initDecode(AVIF_DEC_WASM);
+		isDecodeInitialized = true;
+		return;
+	}
+
+	if (isRunningInNode) {
+		const fs = await import("node:fs");
+		const avifDecWasmBuffer = fs.readFileSync(AVIF_DEC_WASM);
+		const avifDecWasmModule = await WebAssembly.compile(avifDecWasmBuffer);
+		await initDecode(avifDecWasmModule);
+		isDecodeInitialized = true;
+		return;
+	}
+}
+
+async function initializeEncoder(): Promise<void> {
+	if (isEncodeInitialized) return;
+
+	if (isRunningInCloudFlareWorkers) {
+		await initEncode(AVIF_ENC_WASM);
+		isEncodeInitialized = true;
+		return;
+	}
+
+	if (isRunningInNode) {
+		const fs = await import("node:fs");
+		const avifEncWasmBuffer = fs.readFileSync(AVIF_ENC_WASM);
+		const avifEncWasmModule = await WebAssembly.compile(avifEncWasmBuffer);
+		await initEncode(avifEncWasmModule);
+		isEncodeInitialized = true;
+		return;
+	}
+}
+
 export const AvifHandler: ImageHandler = {
 	async decode(buffer) {
-		if (isRunningInCloudFlareWorkers) {
-			await initDecode(AVIF_DEC_WASM);
-		}
-		if (isRunningInNode) {
-			const fs = await import("node:fs");
-			const avifDecWasmBuffer = fs.readFileSync(AVIF_DEC_WASM);
-			const avifDecWasmModule = await WebAssembly.compile(avifDecWasmBuffer);
-			await initDecode(avifDecWasmModule);
-		}
+		await initializeDecoder();
 
 		const result = await decode(buffer);
 
@@ -30,17 +63,7 @@ export const AvifHandler: ImageHandler = {
 		return result;
 	},
 	async encode(image) {
-		if (isRunningInCloudFlareWorkers) {
-			await initEncode(AVIF_ENC_WASM);
-		}
-
-		if (isRunningInNode) {
-			const fs = await import("node:fs");
-			const avifEncWasmBuffer = fs.readFileSync(AVIF_ENC_WASM);
-			const avifEncWasmModule = await WebAssembly.compile(avifEncWasmBuffer);
-			await initEncode(avifEncWasmModule);
-		}
-
+		await initializeEncoder();
 		return encode(image);
 	},
 };

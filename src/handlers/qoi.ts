@@ -9,32 +9,54 @@ import {
 const QOI_ENC_WASM = "node_modules/@jsquash/qoi/codec/enc/qoi_enc.wasm";
 const QOI_DEC_WASM = "node_modules/@jsquash/qoi/codec/dec/qoi_dec.wasm";
 
+let isDecodeInitialized = false;
+let isEncodeInitialized = false;
+
+async function initializeDecoder(): Promise<void> {
+	if (isDecodeInitialized) return;
+
+	if (isRunningInCloudFlareWorkers) {
+		await initDecode(QOI_DEC_WASM);
+		isDecodeInitialized = true;
+		return;
+	}
+
+	if (isRunningInNode) {
+		const fs = await import("node:fs");
+		const qoiDecWasmBuffer = fs.readFileSync(QOI_DEC_WASM);
+		const qoiDecWasmModule = await WebAssembly.compile(qoiDecWasmBuffer);
+		await initDecode(qoiDecWasmModule);
+		isDecodeInitialized = true;
+		return;
+	}
+}
+
+async function initializeEncoder(): Promise<void> {
+	if (isEncodeInitialized) return;
+
+	if (isRunningInCloudFlareWorkers) {
+		await initEncode(QOI_ENC_WASM);
+		isEncodeInitialized = true;
+		return;
+	}
+
+	if (isRunningInNode) {
+		const fs = await import("node:fs");
+		const qoiEncWasmBuffer = fs.readFileSync(QOI_ENC_WASM);
+		const qoiEncWasmModule = await WebAssembly.compile(qoiEncWasmBuffer);
+		await initEncode(qoiEncWasmModule);
+		isEncodeInitialized = true;
+		return;
+	}
+}
+
 export const QoiHandler: ImageHandler = {
 	async decode(buffer) {
-		if (isRunningInCloudFlareWorkers) {
-			await initDecode(QOI_DEC_WASM);
-		}
-		if (isRunningInNode) {
-			const fs = await import("node:fs");
-			const qoiDecWasmBuffer = fs.readFileSync(QOI_DEC_WASM);
-			const qoiDecWasmModule = await WebAssembly.compile(qoiDecWasmBuffer);
-			await initDecode(qoiDecWasmModule);
-		}
-
+		await initializeDecoder();
 		return decode(buffer);
 	},
 	async encode(image) {
-		if (isRunningInCloudFlareWorkers) {
-			await initEncode(QOI_ENC_WASM);
-		}
-
-		if (isRunningInNode) {
-			const fs = await import("node:fs");
-			const qoiEncWasmBuffer = fs.readFileSync(QOI_ENC_WASM);
-			const qoiEncWasmModule = await WebAssembly.compile(qoiEncWasmBuffer);
-			await initEncode(qoiEncWasmModule);
-		}
-
+		await initializeEncoder();
 		return encode(image);
 	},
 };
