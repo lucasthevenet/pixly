@@ -1,4 +1,5 @@
-import type { CropOptions } from "../types";
+import type { CropOptions, OperationFunction } from "../types";
+import { createOperation } from "./custom";
 
 const ternaryPercent = (num: number, full: number) =>
 	num < 1 ? Math.round(num * full) : num;
@@ -37,3 +38,7 @@ export const cropImage = async (
 		colorSpace: "srgb",
 	};
 };
+
+export function crop(options: CropOptions): OperationFunction {
+	return createOperation(cropImage, options);
+}

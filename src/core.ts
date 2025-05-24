@@ -4,13 +4,12 @@ import { JxlHandler } from "./handlers/jxl";
 import { PngHandler } from "./handlers/png";
 import { QoiHandler } from "./handlers/qoi";
 import { WebpHandler } from "./handlers/webp";
-import { blurImage } from "./operations/blur";
-import { cropImage } from "./operations/crop";
+import { blur } from "./operations/blur";
+import { crop } from "./operations/crop";
 import { createOperation } from "./operations/custom";
-import { flipImage } from "./operations/flip";
-import { resizeImage } from "./operations/resize";
-import { resizeImageWasm } from "./operations/resize-wasm";
-import { rotateImage } from "./operations/rotate";
+import { flip } from "./operations/flip";
+import { resize as resizeOp } from "./operations/resize";
+import { rotate } from "./operations/rotate";
 import type {
 	Color,
 	CropOptions,
@@ -19,7 +18,6 @@ import type {
 	MimeType,
 	Operation,
 	OperationFunction,
-	OperationHandler,
 	ResizeOptions,
 	TransformOptions,
 } from "./types";
@@ -264,23 +262,8 @@ export const toDataURL = async (
 };
 
 // Operation factory functions (new function-based style)
-export const resize = (opts: ResizeOptions): OperationFunction =>
-	createOperation(resizeImage, opts);
-
-export const rotate = (angle: number, color: Color): OperationFunction =>
-	createOperation(
-		(bitmap, params) => rotateImage(bitmap, params.degrees, params.background),
-		{ degrees: angle, background: color },
-	);
-
-export const flip = (direction: FlipDirection): OperationFunction =>
-	createOperation(flipImage, direction);
-
-export const crop = (options: CropOptions): OperationFunction =>
-	createOperation(cropImage, options);
-
-export const blur = (radius: number): OperationFunction =>
-	createOperation(blurImage, radius);
+export const resize = resizeOp;
+export { rotate, flip, crop, blur };
 
 export const pipe =
 	<T>(...fns: Array<(arg: T) => Promise<T>>) =>

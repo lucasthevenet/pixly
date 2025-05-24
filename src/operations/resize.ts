@@ -20,14 +20,9 @@
  * THE SOFTWARE.
  */
 
-import type {
-	Color,
-	ImageData,
-	ImageFit,
-	ImagePosition,
-	ResizeOptions,
-} from "../types";
+import type { Color, ResizeOptions, OperationFunction } from "../types";
 import { getFrameDimensions, getImageDimensions } from "../utils/sizing";
+import { createOperation } from "./custom";
 
 const interpolate = (
 	k: number,
@@ -176,3 +171,7 @@ export const resizeImage = async (
 		colorSpace: "srgb",
 	};
 };
+
+export function resize(options: ResizeOptions): OperationFunction {
+	return createOperation(resizeImage, options);
+}

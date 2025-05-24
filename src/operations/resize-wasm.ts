@@ -1,5 +1,5 @@
 import resize, { initResize } from "@jsquash/resize";
-import type { ImageData, ResizeOptions } from "../types";
+import type { ResizeOptions } from "../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,

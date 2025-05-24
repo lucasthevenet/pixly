@@ -1,4 +1,5 @@
-import type { Color, ImageData } from "../types";
+import type { Color, OperationFunction } from "../types";
+import { createOperation } from "./custom";
 
 const createTranslationFunction =
 	(deltaX: number, deltaY: number) => (x: number, y: number) => ({
@@ -59,3 +60,10 @@ export const rotateImage = async (
 		colorSpace: "srgb",
 	};
 };
+
+export function rotate(angle: number, color: Color): OperationFunction {
+	return createOperation(
+		(bitmap, params) => rotateImage(bitmap, params.degrees, params.background),
+		{ degrees: angle, background: color }
+	);
+}

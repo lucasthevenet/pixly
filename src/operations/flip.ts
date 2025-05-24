@@ -1,4 +1,5 @@
-import type { FlipDirection, ImageData } from "../types";
+import type { FlipDirection, OperationFunction } from "../types";
+import { createOperation } from "./custom";
 
 export const flipImage = async (
 	src: ImageData,
@@ -38,3 +39,7 @@ export const flipImage = async (
 
 	return src;
 };
+
+export function flip(direction: FlipDirection): OperationFunction {
+	return createOperation(flipImage, direction);
+}
