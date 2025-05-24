@@ -1,10 +1,12 @@
 ---
-"pixly": minor
+"pixly": major
 ---
 
 Add comprehensive custom operations support with function-based architecture
 
-This release introduces a complete custom operations system that allows users to create and use custom image processing operations alongside built-in operations. The implementation migrates from object-based operations to a more flexible function-based approach.
+This major release introduces a complete custom operations system that allows users to create and use custom image processing operations alongside built-in operations. The implementation migrates from object-based operations to a more flexible function-based approach.
+
+**⚠️ BREAKING CHANGES:** This release contains breaking changes that may require code updates for existing users.
 
 **New Features:**
 - Custom operation functions with type safety (`OperationFunction` type)
@@ -32,4 +34,10 @@ This release introduces a complete custom operations system that allows users to
 - Error handling with descriptive messages
 - 102 test cases covering all functionality
 
-This change maintains API compatibility at the function level while providing much more flexibility for custom image processing workflows.
+**Migration Guide:**
+- If you were using only the high-level functions (`resize()`, `rotate()`, etc.), no changes needed
+- If you were importing operation interfaces (`ResizeOperation`, etc.), remove these imports
+- If you were creating operation objects manually, migrate to the function-based API
+- Update TypeScript types from `ImageOperation` to `OperationFunction` where applicable
+
+This change provides much more flexibility for custom image processing workflows while modernizing the API architecture.
