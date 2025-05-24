@@ -18,6 +18,23 @@ export {
 	loadInput,
 } from "./core";
 
+export {
+	createSafeOperation,
+	isOperationFunction,
+	validateOperationParams,
+	composeOperations,
+	createConditionalOperation,
+	adjustChannels,
+	brightness,
+	contrast,
+	grayscale,
+	sepia,
+	invert,
+	tint,
+	sharpen,
+	pixelate,
+} from "./operations/custom";
+
 export type {
 	OutputOptions,
 	ProcessingConfig,
@@ -59,3 +76,9 @@ export type {
 	OperationFunction,
 	OperationHandler,
 } from "./types";
+
+export type {
+	ChannelOptions,
+	GrayscaleOptions,
+	TintOptions,
+} from "./operations/custom";
