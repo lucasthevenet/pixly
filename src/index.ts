@@ -1,3 +1,4 @@
+import "./utils/polyfill";
 export {
 	createImageProcessor,
 	applyOperation,

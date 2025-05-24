@@ -1,4 +1,4 @@
-import type { CropOptions, ImageData } from "../types";
+import type { CropOptions } from "../types";
 
 const ternaryPercent = (num: number, full: number) =>
 	num < 1 ? Math.round(num * full) : num;

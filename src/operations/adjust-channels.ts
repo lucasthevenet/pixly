@@ -1,4 +1,3 @@
-import { ImageData } from "../types";
 import type { OperationFunction } from "../types";
 import { createOperation } from "./custom";
 
