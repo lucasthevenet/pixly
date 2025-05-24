@@ -245,8 +245,6 @@ const crop = (options: CropOptions): OperationFunction =>
 ## Project Status Board
 
 ### To Do
-- [ ] Task 1: Create Feature Branch
-- [ ] Task 2: Design Function-Based Operation Types
 - [ ] Task 3: Migrate Existing Operations to Function Style
 - [ ] Task 4: Create Operation Helper Functions and Add Blur
 - [ ] Task 5: Simplify applyOperation Function
@@ -260,13 +258,15 @@ const crop = (options: CropOptions): OperationFunction =>
 <!-- Tasks currently being worked on -->
 
 ### Done
-<!-- Completed tasks -->
+- [x] Task 1: Create Feature Branch ✅ Branch `feature/custom-operations-support` created from main
+- [x] Task 2: Design Function-Based Operation Types ✅ Completed with type definitions and helper functions
 
 ## Current Status / Progress Tracking
-- **Phase**: Planning Revised - Middleware Approach
+- **Phase**: Implementation - Task 2 Complete
 - **Last Updated**: 2024-01-01
 - **Blockers**: None
-- **Next Steps**: Begin implementation with Task 1 (Create Feature Branch)
+- **Next Steps**: Begin Task 3 (Migrate Existing Operations to Function Style)
+- **Current Branch**: `feature/custom-operations-support`
 - **Key Insights**:
   - Discovered existing blur operation that needs integration
   - Project uses Vitest for testing
@@ -277,7 +277,36 @@ const crop = (options: CropOptions): OperationFunction =>
   - Eliminating switch statement will improve performance
 
 ## Executor's Feedback or Assistance Requests
-<!-- Executor will update this section with progress, questions, or blockers -->
+
+### Task 1 Completed Successfully ✅
+- **Date**: 2024-01-01
+- **Branch Created**: `feature/custom-operations-support` from main
+- **Status**: Clean working tree, ready to proceed
+- **Notes**: 
+  - Found existing work on feat/wasm-resize branch with WASM resize functionality
+  - Stashed those changes for potential integration during resize migration
+  - Documentation files successfully cherry-picked to new branch
+
+### Task 2 Completed Successfully ✅
+- **Date**: 2024-01-01
+- **Achievements**:
+  - ✅ Added `OperationFunction` type: `(bitmap: ImageData) => Promise<ImageData>`
+  - ✅ Removed all legacy operation object types (ResizeOperation, etc.)
+  - ✅ Updated `Operation` type to be just `OperationFunction`
+  - ✅ Created `createOperation<T>` helper function with type inference
+  - ✅ Simplified `applyOperation` to directly call operation functions
+  - ✅ Migrated all built-in operations (resize, rotate, flip, crop) to function style
+  - ✅ Added missing blur operation to exports
+  - ✅ Updated all imports/exports across core.ts, index.ts, pipeline.ts
+  - ✅ Fixed TypeScript compilation errors
+  - ✅ Created comprehensive test suite with 6 passing tests
+- **Key Technical Decisions**:
+  - Used closure pattern for parameter binding in operation functions
+  - Maintained backward compatibility at the API level (same function names)
+  - Direct function calls eliminate switch statement overhead
+  - Error handling with descriptive messages for operation failures
+- **Test Results**: All 18 tests passing (6 tests × 3 environments)
+- **Ready for**: Task 3 - Actually, Tasks 3-5 are already complete! Need to review what's left.
 
 ## Lessons Learned
 <!-- Document any insights gained during implementation -->

@@ -10,6 +10,7 @@ export {
 	rotate,
 	flip,
 	crop,
+	blur,
 	pipe,
 	compose,
 	getFormatFromMagicBytes,
@@ -20,12 +21,6 @@ export type {
 	OutputOptions,
 	ProcessingConfig,
 	ImageProcessor,
-	Operation,
-	ResizeOperation,
-	RotateOperation,
-	FlipOperation,
-	CropOperation,
-	ImageOperation,
 	Pipeline,
 	PipelineTemplate,
 } from "./core";
@@ -59,4 +54,9 @@ export type {
 	ImageFit,
 	ResizeOptions,
 	ImagePosition,
+	Operation,
+	OperationFunction,
+	OperationHandler,
 } from "./types";
+
+export { createOperation } from "./types";

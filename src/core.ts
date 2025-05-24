@@ -4,6 +4,7 @@ import { JxlHandler } from "./handlers/jxl";
 import { PngHandler } from "./handlers/png";
 import { QoiHandler } from "./handlers/qoi";
 import { WebpHandler } from "./handlers/webp";
+import { blurImage } from "./operations/blur";
 import { cropImage } from "./operations/crop";
 import { flipImage } from "./operations/flip";
 import { resizeImage } from "./operations/resize";
@@ -15,9 +16,12 @@ import type {
 	FlipDirection,
 	ImageHandler,
 	MimeType,
+	Operation,
+	OperationFunction,
 	ResizeOptions,
 	TransformOptions,
 } from "./types";
+import { createOperation } from "./types";
 
 export const typeHandlers: Record<MimeType, ImageHandler> = {
 	"image/png": PngHandler,
@@ -44,45 +48,16 @@ export interface ImageProcessor {
 	config: ProcessingConfig;
 }
 
-export interface Operation {
-	type: "resize" | "rotate" | "flip" | "crop";
-	params: unknown;
-}
-
-export interface ResizeOperation extends Operation {
-	type: "resize";
-	params: ResizeOptions;
-}
-
-export interface RotateOperation extends Operation {
-	type: "rotate";
-	params: { angle: number; color: Color };
-}
-
-export interface FlipOperation extends Operation {
-	type: "flip";
-	params: { direction: FlipDirection };
-}
-
-export interface CropOperation extends Operation {
-	type: "crop";
-	params: CropOptions;
-}
-
-export type ImageOperation =
-	| ResizeOperation
-	| RotateOperation
-	| FlipOperation
-	| CropOperation;
+// Legacy operation interfaces removed - all operations are now functions
 
 export interface Pipeline {
-	operations: ImageOperation[];
+	operations: Operation[];
 	config: ProcessingConfig;
 }
 
 export interface PipelineTemplate {
 	name: string;
-	operations: ImageOperation[];
+	operations: Operation[];
 	outputFormat: MimeType;
 }
 
@@ -208,7 +183,7 @@ export const createImageProcessor = async (
 // Operation application functions
 export const applyOperation = async (
 	processor: ImageProcessor,
-	operation: ImageOperation,
+	operation: Operation,
 ): Promise<ImageProcessor> => {
 	if (!processor.bitmap) {
 		return {
@@ -216,36 +191,20 @@ export const applyOperation = async (
 		};
 	}
 
-	let newBitmap = processor.bitmap;
-
-	switch (operation.type) {
-		case "resize":
-			newBitmap = await resizeImage(newBitmap, operation.params);
-			break;
-		case "rotate":
-			newBitmap = await rotateImage(
-				newBitmap,
-				operation.params.angle,
-				operation.params.color,
-			);
-			break;
-		case "flip":
-			newBitmap = await flipImage(newBitmap, operation.params.direction);
-			break;
-		case "crop":
-			newBitmap = await cropImage(newBitmap, operation.params);
-			break;
+	try {
+		const newBitmap = await operation(processor.bitmap);
+		return {
+			...processor,
+			bitmap: newBitmap,
+		};
+	} catch (error) {
+		throw new Error(`Operation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 	}
-
-	return {
-		...processor,
-		bitmap: newBitmap,
-	};
 };
 
 export const applyOperations = async (
 	processor: ImageProcessor,
-	operations: ImageOperation[],
+	operations: Operation[],
 ): Promise<ImageProcessor> => {
 	let currentProcessor = processor;
 	for (const operation of operations) {
@@ -303,26 +262,21 @@ export const toDataURL = async (
 	return `data:${format};base64,${base64}`;
 };
 
-// Operation factory functions (curried for composition)
-export const resize =
-	(opts: ResizeOptions) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "resize", params: opts });
+// Operation factory functions (new function-based style)
+export const resize = (opts: ResizeOptions): OperationFunction =>
+	createOperation(resizeImage, opts);
 
-export const rotate =
-	(angle: number, color: Color) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "rotate", params: { angle, color } });
+export const rotate = (angle: number, color: Color): OperationFunction =>
+	createOperation((bitmap, params) => rotateImage(bitmap, params.degrees, params.background), { degrees: angle, background: color });
 
-export const flip =
-	(direction: FlipDirection) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "flip", params: { direction } });
+export const flip = (direction: FlipDirection): OperationFunction =>
+	createOperation(flipImage, direction);
 
-export const crop =
-	(options: CropOptions) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "crop", params: options });
+export const crop = (options: CropOptions): OperationFunction =>
+	createOperation(cropImage, options);
+
+export const blur = (radius: number): OperationFunction =>
+	createOperation(blurImage, radius);
 
 // Composition utilities
 export const pipe =

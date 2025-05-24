@@ -1,16 +1,21 @@
 import type {
-	ImageOperation,
 	OutputOptions,
 	Pipeline,
 	PipelineTemplate,
 	ProcessingConfig,
 } from "./core";
+import type { Operation } from "./types";
 import {
 	applyOperations,
 	createImageProcessor,
+	encodeProcessor,
 	toBlob,
 	toBuffer,
 	toDataURL,
+	resize,
+	rotate,
+	flip,
+	crop,
 } from "./core";
 import type {
 	Color,
@@ -29,29 +34,29 @@ export const createPipeline = (config: ProcessingConfig = {}): Pipeline => ({
 
 export const addOperation = (
 	pipeline: Pipeline,
-	operation: ImageOperation,
+	operation: Operation,
 ): Pipeline => ({
 	...pipeline,
 	operations: [...pipeline.operations, operation],
 });
 
 export const addResize = (pipeline: Pipeline, opts: ResizeOptions): Pipeline =>
-	addOperation(pipeline, { type: "resize", params: opts });
+	addOperation(pipeline, resize(opts));
 
 export const addRotate = (
 	pipeline: Pipeline,
 	angle: number,
 	color: Color,
 ): Pipeline =>
-	addOperation(pipeline, { type: "rotate", params: { angle, color } });
+	addOperation(pipeline, rotate(angle, color));
 
 export const addFlip = (
 	pipeline: Pipeline,
 	direction: FlipDirection,
-): Pipeline => addOperation(pipeline, { type: "flip", params: { direction } });
+): Pipeline => addOperation(pipeline, flip(direction));
 
 export const addCrop = (pipeline: Pipeline, options: CropOptions): Pipeline =>
-	addOperation(pipeline, { type: "crop", params: options });
+	addOperation(pipeline, crop(options));
 
 // Pipeline execution
 export const processPipeline = async (
