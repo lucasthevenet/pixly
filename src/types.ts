@@ -93,3 +93,6 @@ export type OperationHandler<T> = (
 	bitmap: ImageData,
 	params: T,
 ) => Promise<ImageData>;
+
+/** Input type for image processing */
+export type ImageInput = ArrayBuffer | Uint8Array | Blob | File | string;
