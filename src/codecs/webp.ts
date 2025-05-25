@@ -2,8 +2,12 @@
  * WebP codec for decoding and encoding WebP images
  */
 
+import type { EncodeOptions } from "@jsquash/webp/meta";
 import type { Decoder, Encoder } from "../types";
-import { isRunningInCloudFlareWorkers, isRunningInNode } from "../utils/environment";
+import {
+	isRunningInCloudFlareWorkers,
+	isRunningInNode,
+} from "../utils/environment";
 
 let webpDecodeInitialized = false;
 let webpEncodeInitialized = false;
@@ -20,7 +24,7 @@ async function initializeDecoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initDecode }, fs] = await Promise.all([
 			import("@jsquash/webp/decode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(DECODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -38,7 +42,7 @@ async function initializeEncoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initEncode }, fs] = await Promise.all([
 			import("@jsquash/webp/encode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(ENCODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -55,10 +59,10 @@ export function webpDecoder(): Decoder {
 	};
 }
 
-export function webp(quality = 80, compressionLevel = 9): Encoder {
+export function webp(options?: Partial<EncodeOptions>): Encoder {
 	return async (image: ImageData): Promise<ArrayBuffer> => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/webp/encode");
-		return encode(image);
+		return encode(image, options);
 	};
 }

@@ -2,8 +2,12 @@
  * JXL codec for decoding and encoding JXL images
  */
 
+import type { EncodeOptions } from "@jsquash/jxl/meta";
 import type { Decoder, Encoder } from "../types";
-import { isRunningInCloudFlareWorkers, isRunningInNode } from "../utils/environment";
+import {
+	isRunningInCloudFlareWorkers,
+	isRunningInNode,
+} from "../utils/environment";
 
 let jxlDecodeInitialized = false;
 let jxlEncodeInitialized = false;
@@ -20,7 +24,7 @@ async function initializeDecoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initDecode }, fs] = await Promise.all([
 			import("@jsquash/jxl/decode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(DECODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -38,7 +42,7 @@ async function initializeEncoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initEncode }, fs] = await Promise.all([
 			import("@jsquash/jxl/encode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(ENCODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -55,10 +59,10 @@ export function jxl(): Decoder {
 	};
 }
 
-export function jxlEncoder(quality = 80): Encoder {
+export function jxlEncoder(options?: Partial<EncodeOptions>): Encoder {
 	return async (image: ImageData): Promise<ArrayBuffer> => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/jxl/encode");
-		return encode(image);
+		return encode(image, options);
 	};
 }

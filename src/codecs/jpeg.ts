@@ -2,14 +2,20 @@
  * JPEG codec for decoding and encoding JPEG images
  */
 
+import type { DecodeOptions, EncodeOptions } from "@jsquash/jpeg/meta";
 import type { Decoder, Encoder } from "../types";
-import { isRunningInCloudFlareWorkers, isRunningInNode } from "../utils/environment";
+import {
+	isRunningInCloudFlareWorkers,
+	isRunningInNode,
+} from "../utils/environment";
 
 let jpegDecodeInitialized = false;
 let jpegEncodeInitialized = false;
 
-const DECODE_WASM_PATH = "node_modules/@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm";
-const ENCODE_WASM_PATH = "node_modules/@jsquash/jpeg/codec/enc/mozjpeg_enc.wasm";
+const DECODE_WASM_PATH =
+	"node_modules/@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm";
+const ENCODE_WASM_PATH =
+	"node_modules/@jsquash/jpeg/codec/enc/mozjpeg_enc.wasm";
 
 async function initializeDecoder() {
 	if (jpegDecodeInitialized) return;
@@ -20,7 +26,7 @@ async function initializeDecoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initDecode }, fs] = await Promise.all([
 			import("@jsquash/jpeg/decode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(DECODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -38,7 +44,7 @@ async function initializeEncoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initEncode }, fs] = await Promise.all([
 			import("@jsquash/jpeg/encode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(ENCODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -47,18 +53,18 @@ async function initializeEncoder() {
 	jpegEncodeInitialized = true;
 }
 
-export function jpeg(): Decoder {
+export function jpeg(options?: Partial<DecodeOptions>): Decoder {
 	return async (buffer: ArrayBuffer): Promise<ImageData> => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/jpeg/decode");
-		return decode(buffer);
+		return decode(buffer, options);
 	};
 }
 
-export function jpegEncoder(quality = 80): Encoder {
+export function jpegEncoder(options?: Partial<EncodeOptions>): Encoder {
 	return async (image: ImageData): Promise<ArrayBuffer> => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/jpeg/encode");
-		return encode(image);
+		return encode(image, options);
 	};
 }

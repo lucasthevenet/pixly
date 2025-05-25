@@ -2,8 +2,12 @@
  * AVIF codec for decoding and encoding AVIF images
  */
 
+import type { EncodeOptions } from "@jsquash/avif/meta";
 import type { Decoder, Encoder } from "../types";
-import { isRunningInCloudFlareWorkers, isRunningInNode } from "../utils/environment";
+import {
+	isRunningInCloudFlareWorkers,
+	isRunningInNode,
+} from "../utils/environment";
 
 let avifDecodeInitialized = false;
 let avifEncodeInitialized = false;
@@ -20,7 +24,7 @@ async function initializeDecoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initDecode }, fs] = await Promise.all([
 			import("@jsquash/avif/decode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(DECODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -38,7 +42,7 @@ async function initializeEncoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initEncode }, fs] = await Promise.all([
 			import("@jsquash/avif/encode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(ENCODE_WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -51,20 +55,20 @@ export function avif(): Decoder {
 	return async (buffer: ArrayBuffer): Promise<ImageData> => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/avif/decode");
-		
+
 		const result = await decode(buffer);
 		if (!result) {
 			throw new Error("Failed to decode AVIF image");
 		}
-		
+
 		return result;
 	};
 }
 
-export function avifEncoder(quality = 80): Encoder {
+export function avifEncoder(options?: Partial<EncodeOptions>): Encoder {
 	return async (image: ImageData): Promise<ArrayBuffer> => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/avif/encode");
-		return encode(image);
+		return encode(image, options);
 	};
 }
