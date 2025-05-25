@@ -176,20 +176,27 @@ const blob = result.toBlob();
 - **Git Status**: On branch feat/composable-api-redesign, working tree clean
 
 ### Task 2 Completion Report
-- ✅ **Completed**: Comprehensive type definitions for composable API
+- ✅ **Completed**: Function-based codec architecture for tree-shaking optimization
 - **Files Created**:
   - `src/composable-types.ts` - All interfaces and types for the new API
-  - `src/helpers.ts` - Decoder/encoder helper functions
-  - `src/composable-types.test.ts` - 19 tests for type definitions
-  - `src/helpers.test.ts` - 22 tests for helper functions
+  - `src/helpers.ts` - Actual decoder/encoder functions with codec logic
+  - `src/composable-types.test.ts` - 10 tests for type definitions
+  - `src/helpers.test.ts` - 27 tests for helper functions
+- **Key Architecture Decisions**:
+  - **Tree-shaking optimization**: Helper functions contain actual codec logic, not config objects
+  - **Function-based API**: Helpers return `Decoder`/`Encoder` functions directly
+  - **Format detection**: Moved from core.ts to auto() helper for better modularity
+  - **Lazy loading**: Each codec is imported and initialized only when its helper is called
 - **Key Types Added**:
-  - `ImageBuilder` - Main fluent interface
+  - `ImageBuilder` - Main fluent interface accepting Decoder/Encoder functions
   - `ProcessingResult` - Result object with conversion methods
-  - `DecoderConfig` & `EncoderConfig` - Configuration types
-  - `BuilderState` - Internal state management
-  - Format-specific encoder options for all supported formats
-- **Test Results**: All 123 tests passing across 3 environments
-- **Git Commit**: 918c394 - "feat: add comprehensive type definitions for composable API"
+  - `BuilderState` - Internal state with decoder/encoder functions
+  - Function signatures using existing `Decoder`/`Encoder` types
+- **Bundle Size Benefits**: Only used codecs will be included in final bundle
+- **Test Results**: All 111 tests passing across 3 environments
+- **Git Commits**: 
+  - 918c394 - "feat: add comprehensive type definitions for composable API"
+  - 8069d20 - "feat: refactor helpers to contain actual codec logic for tree-shaking"
 
 ### Next Steps
 Moving to Task 3: Implement core builder class. This will involve:
@@ -203,6 +210,10 @@ Moving to Task 3: Implement core builder class. This will involve:
 - [2024-12-20] Helper functions with good defaults make the API more user-friendly while maintaining flexibility
 - [2024-12-20] Comprehensive type tests ensure proper TypeScript inference and catch type issues early
 - [2024-12-20] Building types first enables test-driven development for the implementation
+- [2024-12-20] Tree-shaking optimization requires moving codec logic into helper functions rather than using config objects
+- [2024-12-20] Function-based APIs enable better bundle optimization than object/config-based approaches
+- [2024-12-20] Some decoder functions (like AVIF) can return null and need proper error handling
+- [2024-12-20] Moving format detection into the auto() helper improves modularity and tree-shaking effectiveness
 
 ## Additional Technical Notes
 

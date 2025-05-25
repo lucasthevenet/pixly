@@ -47,12 +47,6 @@ describe("Helper Functions", () => {
       expect(typeof decoder).toBe("function");
     });
 
-    it("should create auto decoder with metadata preservation", () => {
-      const decoder = auto(true);
-      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
-      expect(typeof decoder).toBe("function");
-    });
-
     it("should create JPEG decoder function", () => {
       const decoder = jpeg();
       expectTypeOf(decoder).toEqualTypeOf<Decoder>();
@@ -167,9 +161,7 @@ describe("Helper Functions", () => {
   describe("Type Safety", () => {
     it("should maintain proper types for all decoder helpers", () => {
       expectTypeOf(auto()).toEqualTypeOf<Decoder>();
-      expectTypeOf(auto(true)).toEqualTypeOf<Decoder>();
       expectTypeOf(jpeg()).toEqualTypeOf<Decoder>();
-      expectTypeOf(jpeg(false)).toEqualTypeOf<Decoder>();
       expectTypeOf(png()).toEqualTypeOf<Decoder>();
       expectTypeOf(webpDecoder()).toEqualTypeOf<Decoder>();
       expectTypeOf(avif()).toEqualTypeOf<Decoder>();
