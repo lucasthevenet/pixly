@@ -3,22 +3,22 @@
  */
 
 // Auto decoder with format detection
-export { auto, getFormatFromMagicBytes } from "./codecs/auto";
+export { auto, getFormatFromMagicBytes } from "./auto";
 
 // PNG codec
-export { png, pngEncoder } from "./codecs/png";
+export { png, pngEncoder } from "./png";
 
 // JPEG codec
-export { jpeg, jpegEncoder } from "./codecs/jpeg";
+export { jpeg, jpegEncoder } from "./jpeg";
 
 // WebP codec
-export { webpDecoder, webp } from "./codecs/webp";
+export { webpDecoder, webp } from "./webp";
 
 // AVIF codec
-export { avif, avifEncoder } from "./codecs/avif";
+export { avif, avifEncoder } from "./avif";
 
 // JXL codec
-export { jxl, jxlEncoder } from "./codecs/jxl";
+export { jxl, jxlEncoder } from "./jxl";
 
 // QOI codec
-export { qoi, qoiEncoder } from "./codecs/qoi";
+export { qoi, qoiEncoder } from "./qoi";

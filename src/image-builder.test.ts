@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { ImageBuilder } from "./image-builder";
-import type { Decoder, Encoder, OperationFunction, ImageInput } from "./types";
+import type { Decoder, Encoder, OperationFunction,  } from "./types";
 
 function mockOp(label: string): OperationFunction {
   return vi.fn(async (img: ImageData): Promise<ImageData> => {
