@@ -4,21 +4,11 @@ import { JxlHandler } from "./handlers/jxl";
 import { PngHandler } from "./handlers/png";
 import { QoiHandler } from "./handlers/qoi";
 import { WebpHandler } from "./handlers/webp";
-import { blur } from "./operations/blur";
-import { crop } from "./operations/crop";
-import { createOperation } from "./operations/custom";
-import { flip } from "./operations/flip";
-import { resize as resizeOp } from "./operations/resize";
-import { rotate } from "./operations/rotate";
+
 import type {
-	Color,
-	CropOptions,
-	FlipDirection,
 	ImageHandler,
 	MimeType,
 	Operation,
-	OperationFunction,
-	ResizeOptions,
 	TransformOptions,
 } from "./types";
 
@@ -45,17 +35,6 @@ export interface ImageProcessor {
 	buffer: Uint8Array;
 	bitmap: ImageData | null;
 	config: ProcessingConfig;
-}
-
-export interface Pipeline {
-	operations: Operation[];
-	config: ProcessingConfig;
-}
-
-export interface PipelineTemplate {
-	name: string;
-	operations: Operation[];
-	outputFormat: MimeType;
 }
 
 // Core utility functions
@@ -260,10 +239,6 @@ export const toDataURL = async (
 	const base64 = btoa(String.fromCharCode(...buffer));
 	return `data:${format};base64,${base64}`;
 };
-
-// Operation factory functions (new function-based style)
-export const resize = resizeOp;
-export { rotate, flip, crop, blur };
 
 export const pipe =
 	<T>(...fns: Array<(arg: T) => Promise<T>>) =>

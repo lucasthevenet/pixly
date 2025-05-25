@@ -7,15 +7,16 @@ export {
 	toBuffer,
 	toBlob,
 	toDataURL,
-	resize,
-	rotate,
-	flip,
-	crop,
-	blur,
 	pipe,
 	compose,
 	getFormatFromMagicBytes,
 	loadInput,
+} from "./core";
+
+export type {
+	OutputOptions,
+	ProcessingConfig,
+	ImageProcessor,
 } from "./core";
 
 export {
@@ -36,34 +37,32 @@ export { invert } from "./operations/invert";
 export { tint } from "./operations/tint";
 export { sharpen } from "./operations/sharpen";
 export { pixelate } from "./operations/pixelate";
+export { resize } from "./operations/resize";
+export { rotate } from "./operations/rotate";
+export { flip } from "./operations/flip";
+export { crop } from "./operations/crop";
+export { blur } from "./operations/blur";
 
-export type {
-	OutputOptions,
-	ProcessingConfig,
-	ImageProcessor,
-	Pipeline,
-	PipelineTemplate,
-} from "./core";
+export type { ChannelOptions } from "./operations/adjust-channels";
+export type { GrayscaleOptions } from "./operations/grayscale";
+export type { TintOptions } from "./operations/tint";
 
 export {
 	createPipeline,
 	addOperation,
-	addResize,
-	addRotate,
-	addFlip,
-	addCrop,
 	processPipeline,
 	processPipelineToBlob,
 	processPipelineToDataURL,
-	createThumbnailPipeline,
-	createWebOptimizedPipeline,
-	createCompressionPipeline,
-	createPipelineFromTemplate,
 } from "./pipeline";
 
-export { createFunctionalBuilder } from "./factory";
+export type {
+	Pipeline,
+	PipelineTemplate,
+} from "./pipeline";
 
-export type { FunctionalBuilder } from "./factory";
+export { createEditor } from "./factory";
+
+export type { ImageEditor } from "./factory";
 
 export type {
 	MimeType,
@@ -78,7 +77,3 @@ export type {
 	OperationFunction,
 	OperationHandler,
 } from "./types";
-
-export type { ChannelOptions } from "./operations/adjust-channels";
-export type { GrayscaleOptions } from "./operations/grayscale";
-export type { TintOptions } from "./operations/tint";

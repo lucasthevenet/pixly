@@ -2,17 +2,12 @@ import { expect, it } from "vitest";
 import {
 	type PipelineTemplate,
 	type ProcessingConfig,
-	addCrop,
-	addFlip,
-	addResize,
-	addRotate,
+	addOperation,
 	applyOperation,
 	compose,
-	createFunctionalBuilder,
+	createEditor,
 	createImageProcessor,
 	createPipeline,
-	createPipelineFromTemplate,
-	createThumbnailPipeline,
 	crop,
 	flip,
 	pipe,
@@ -23,6 +18,7 @@ import {
 	toBuffer,
 	toDataURL,
 } from "../src/index";
+import { createPipelineFromTemplate } from "../src/pipeline";
 import { getTestImage } from "./utils";
 
 it("API surface - should handle invalid input types gracefully", async () => {
@@ -91,7 +87,7 @@ it("API surface - encoding should encode a decoded PNG bitmap back to PNG", asyn
 });
 
 it("API surface - functional builder should allow chaining of transformation methods", async () => {
-	const builder = createFunctionalBuilder();
+	const builder = createEditor();
 	const chainedBuilder = builder.flip("horizontal").crop({
 		height: 10,
 		width: 10,
@@ -106,7 +102,7 @@ it("API surface - functional builder should allow chaining of transformation met
 });
 
 it("API surface - functional builder should accept OutputOptions in output methods", async () => {
-	const builder = createFunctionalBuilder();
+	const builder = createEditor();
 	const input = new Uint8Array([0]);
 
 	await expect(
@@ -126,21 +122,27 @@ it("API surface - pipeline should work with operations", async () => {
 	let pipeline = createPipeline({
 		decoder: "image/jpeg",
 	});
-	pipeline = addFlip(pipeline, "both");
-	pipeline = addResize(pipeline, {
-		width: 1000,
-		height: 1000,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	});
-	pipeline = addCrop(pipeline, {
-		height: 1000,
-		width: 500,
-		x: 0,
-		y: 0,
-		background: [0, 0, 0, 0],
-	});
+	pipeline = addOperation(pipeline, flip("both"));
+	pipeline = addOperation(
+		pipeline,
+		resize({
+			width: 1000,
+			height: 1000,
+			background: [0, 0, 0, 0],
+			fit: "contain",
+			position: "center",
+		}),
+	);
+	pipeline = addOperation(
+		pipeline,
+		crop({
+			height: 1000,
+			width: 500,
+			x: 0,
+			y: 0,
+			background: [0, 0, 0, 0],
+		}),
+	);
 
 	const input = await getTestImage("original");
 	const result = await processPipeline(pipeline, input, {
@@ -265,41 +267,30 @@ it("Operations - should handle operations on processors without bitmaps", async 
 
 it("Pipeline system - should create and execute complex pipelines", async () => {
 	let pipeline = createPipeline({});
-	pipeline = addResize(pipeline, {
-		width: 200,
-		height: 200,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	});
-	pipeline = addRotate(pipeline, 180, [255, 255, 255, 255]);
-	pipeline = addFlip(pipeline, "horizontal");
-	pipeline = addCrop(pipeline, {
-		x: 10,
-		y: 10,
-		width: 50,
-		height: 50,
-		background: [0, 0, 0, 0],
-	});
+	pipeline = addOperation(
+		pipeline,
+		resize({
+			width: 200,
+			height: 200,
+			background: [0, 0, 0, 0],
+			fit: "contain",
+			position: "center",
+		}),
+	);
+	pipeline = addOperation(pipeline, rotate(180, [255, 255, 255, 255]));
+	pipeline = addOperation(pipeline, flip("horizontal"));
+	pipeline = addOperation(
+		pipeline,
+		crop({
+			x: 10,
+			y: 10,
+			width: 50,
+			height: 50,
+			background: [0, 0, 0, 0],
+		}),
+	);
 
 	expect(pipeline.operations).toHaveLength(4);
-});
-
-it("Pipeline system - should reuse pipelines with different inputs", async () => {
-	const pipeline = createThumbnailPipeline(64);
-	const input1 = new Uint8Array([1]);
-	const input2 = new Uint8Array([2]);
-
-	const result1 = await processPipeline(pipeline, input1, {
-		format: "image/jpeg",
-	});
-	const result2 = await processPipeline(pipeline, input2, {
-		format: "image/jpeg",
-	});
-
-	expect(result1).toBeInstanceOf(Uint8Array);
-	expect(result2).toBeInstanceOf(Uint8Array);
-	expect(result1).not.toBe(result2);
 });
 
 it("Pipeline system - should create pipelines from templates", async () => {
@@ -359,13 +350,16 @@ it("Immutability - should not mutate pipeline during operation addition", () => 
 	const originalPipeline = createPipeline();
 	const originalOperations = originalPipeline.operations;
 
-	const newPipeline = addResize(originalPipeline, {
-		width: 100,
-		height: 100,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	});
+	const newPipeline = addOperation(
+		originalPipeline,
+		resize({
+			width: 100,
+			height: 100,
+			background: [0, 0, 0, 0],
+			fit: "contain",
+			position: "center",
+		}),
+	);
 
 	expect(originalPipeline.operations).toBe(originalOperations);
 	expect(originalPipeline.operations).toHaveLength(0);
@@ -405,7 +399,7 @@ it("Error handling - should handle invalid operation parameters", async () => {
 });
 
 it("Functional builder advanced - should support complex transformation chains", async () => {
-	const builder = createFunctionalBuilder();
+	const builder = createEditor();
 
 	const chainedBuilder = builder
 		.resize({
@@ -430,7 +424,7 @@ it("Functional builder advanced - should support complex transformation chains",
 });
 
 it("Functional builder advanced - should maintain builder state across operations", async () => {
-	const builder = createFunctionalBuilder();
+	const builder = createEditor();
 
 	const step1 = builder.resize({
 		width: 100,

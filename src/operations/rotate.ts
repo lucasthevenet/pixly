@@ -64,6 +64,6 @@ export const rotateImage = async (
 export function rotate(angle: number, color: Color): OperationFunction {
 	return createOperation(
 		(bitmap, params) => rotateImage(bitmap, params.degrees, params.background),
-		{ degrees: angle, background: color }
+		{ degrees: angle, background: color },
 	);
 }

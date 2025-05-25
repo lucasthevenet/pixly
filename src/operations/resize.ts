@@ -20,76 +20,11 @@
  * THE SOFTWARE.
  */
 
-import type { Color, ResizeOptions, OperationFunction } from "../types";
+import type { Color, OperationFunction, ResizeOptions } from "../types";
 import { getFrameDimensions, getImageDimensions } from "../utils/sizing";
 import { createOperation } from "./custom";
 
-const interpolate = (
-	k: number,
-	kMin: number,
-	vMin: number,
-	kMax: number,
-	vMax: number,
-) => {
-	// special case - k is integer
-	if (kMin === kMax) {
-		return vMin;
-	}
-
-	return Math.round((k - kMin) * vMax + (kMax - k) * vMin);
-};
-
-const assign = (
-	src: ImageData,
-	dstBuffer: Uint8ClampedArray,
-	pos: number,
-	x: number,
-	xMin: number,
-	xMax: number,
-	y: number,
-	yMin: number,
-	yMax: number,
-	background: Color,
-) => {
-	const result = [0x0, 0x0, 0x0, 0x0];
-
-	for (let offset = 0; offset < 4; offset += 1) {
-		let posMin = (yMin * src.width + xMin) * 4 + offset;
-		let posMax = (yMin * src.width + xMax) * 4 + offset;
-		const vMin = interpolate(
-			x,
-			xMin,
-			src.data[posMin]!,
-			xMax,
-			src.data[posMax]!,
-		);
-
-		// special case, y is integer
-		if (yMax === yMin) {
-			result[offset] = vMin;
-		} else {
-			posMin = (yMax * src.width + xMin) * 4 + offset;
-			posMax = (yMax * src.width + xMax) * 4 + offset;
-			const vMax = interpolate(
-				x,
-				xMin,
-				src.data[posMin]!,
-				xMax,
-				src.data[posMax]!,
-			);
-
-			result[offset] = interpolate(y, yMin, vMin, yMax, vMax);
-		}
-	}
-
-	if (result.every((i) => i === 0)) {
-		dstBuffer.set(background, pos);
-	} else {
-		dstBuffer.set(result, pos);
-	}
-};
-
-export const resizeImage = async (
+const resizeImage = async (
 	src: ImageData,
 	opts: ResizeOptions,
 ): Promise<ImageData> => {
@@ -170,6 +105,71 @@ export const resizeImage = async (
 		height: frameHeight,
 		colorSpace: "srgb",
 	};
+};
+
+const interpolate = (
+	k: number,
+	kMin: number,
+	vMin: number,
+	kMax: number,
+	vMax: number,
+) => {
+	// special case - k is integer
+	if (kMin === kMax) {
+		return vMin;
+	}
+
+	return Math.round((k - kMin) * vMax + (kMax - k) * vMin);
+};
+
+const assign = (
+	src: ImageData,
+	dstBuffer: Uint8ClampedArray,
+	pos: number,
+	x: number,
+	xMin: number,
+	xMax: number,
+	y: number,
+	yMin: number,
+	yMax: number,
+	background: Color,
+) => {
+	const result = [0x0, 0x0, 0x0, 0x0];
+
+	for (let offset = 0; offset < 4; offset += 1) {
+		let posMin = (yMin * src.width + xMin) * 4 + offset;
+		let posMax = (yMin * src.width + xMax) * 4 + offset;
+		const vMin = interpolate(
+			x,
+			xMin,
+			src.data[posMin]!,
+			xMax,
+			src.data[posMax]!,
+		);
+
+		// special case, y is integer
+		if (yMax === yMin) {
+			result[offset] = vMin;
+		} else {
+			posMin = (yMax * src.width + xMin) * 4 + offset;
+			posMax = (yMax * src.width + xMax) * 4 + offset;
+			const vMax = interpolate(
+				x,
+				xMin,
+				src.data[posMin]!,
+				xMax,
+				src.data[posMax]!,
+			);
+
+			result[offset] = interpolate(y, yMin, vMin, yMax, vMax);
+		}
+	}
+
+	if (result.every((i) => i === 0)) {
+		dstBuffer.set(background, pos);
+	} else {
+		dstBuffer.set(result, pos);
+	}
 };
 
 export function resize(options: ResizeOptions): OperationFunction {
