@@ -1,25 +1,24 @@
 /**
- * Codec exports for tree-shaking optimization
- * Each codec is in a separate file to enable selective bundling
+ * Re-exports from individual codec files for tree-shaking optimization
  */
 
 // Auto decoder with format detection
-export { auto, getFormatFromMagicBytes } from "./auto";
+export { auto, getFormatFromMagicBytes } from "./codecs/auto";
 
 // PNG codec
-export { png, pngEncoder } from "./png";
+export { png, pngEncoder } from "./codecs/png";
 
 // JPEG codec
-export { jpeg, jpegEncoder } from "./jpeg";
+export { jpeg, jpegEncoder } from "./codecs/jpeg";
 
 // WebP codec
-export { webpDecoder, webp } from "./webp";
+export { webpDecoder, webp } from "./codecs/webp";
 
 // AVIF codec
-export { avif, avifEncoder } from "./avif";
+export { avif, avifEncoder } from "./codecs/avif";
 
 // JXL codec
-export { jxl, jxlEncoder } from "./jxl";
+export { jxl, jxlEncoder } from "./codecs/jxl";
 
 // QOI codec
-export { qoi, qoiEncoder } from "./qoi";
+export { qoi, qoiEncoder } from "./codecs/qoi";
