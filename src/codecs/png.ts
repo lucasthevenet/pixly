@@ -3,7 +3,10 @@
  */
 
 import type { Decoder, Encoder } from "../types";
-import { isRunningInCloudFlareWorkers, isRunningInNode } from "../utils/environment";
+import {
+	isRunningInCloudFlareWorkers,
+	isRunningInNode,
+} from "../utils/environment";
 
 let pngDecodeInitialized = false;
 let pngEncodeInitialized = false;
@@ -19,7 +22,7 @@ async function initializeDecoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initDecode }, fs] = await Promise.all([
 			import("@jsquash/png/decode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -37,7 +40,7 @@ async function initializeEncoder() {
 	} else if (isRunningInNode) {
 		const [{ init: initEncode }, fs] = await Promise.all([
 			import("@jsquash/png/encode"),
-			import("node:fs")
+			import("node:fs"),
 		]);
 		const wasmBuffer = fs.readFileSync(WASM_PATH);
 		const wasmModule = await WebAssembly.compile(wasmBuffer);
@@ -54,7 +57,7 @@ export function png(): Decoder {
 	};
 }
 
-export function pngEncoder(compressionLevel = 9): Encoder {
+export function pngEncoder(): Encoder {
 	return async (image: ImageData): Promise<ArrayBuffer> => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/png/encode");

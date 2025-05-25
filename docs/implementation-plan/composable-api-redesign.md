@@ -176,27 +176,37 @@ const blob = result.toBlob();
 - **Git Status**: On branch feat/composable-api-redesign, working tree clean
 
 ### Task 2 Completion Report
-- ✅ **Completed**: Function-based codec architecture for tree-shaking optimization
+- ✅ **Completed**: Separated codec architecture for optimal tree-shaking
 - **Files Created**:
   - `src/composable-types.ts` - All interfaces and types for the new API
-  - `src/helpers.ts` - Actual decoder/encoder functions with codec logic
+  - `src/helpers.ts` - Re-exports from individual codec files
+  - `src/codecs/` folder with individual codec files:
+    - `png.ts` - PNG codec with decode/encode functions
+    - `jpeg.ts` - JPEG codec with decode/encode functions
+    - `webp.ts` - WebP codec with decode/encode functions
+    - `avif.ts` - AVIF codec with decode/encode functions
+    - `jxl.ts` - JXL codec with decode/encode functions
+    - `qoi.ts` - QOI codec with decode/encode functions
+    - `auto.ts` - Auto-detection with dynamic imports
+    - `index.ts` - Convenience exports
   - `src/composable-types.test.ts` - 10 tests for type definitions
-  - `src/helpers.test.ts` - 27 tests for helper functions
+  - `src/helpers.test.ts` - 26 tests for helper functions
 - **Key Architecture Decisions**:
-  - **Tree-shaking optimization**: Helper functions contain actual codec logic, not config objects
+  - **Maximum tree-shaking**: Each codec in separate file for granular bundling
   - **Function-based API**: Helpers return `Decoder`/`Encoder` functions directly
-  - **Format detection**: Moved from core.ts to auto() helper for better modularity
-  - **Lazy loading**: Each codec is imported and initialized only when its helper is called
+  - **Dynamic imports**: Auto codec uses dynamic imports to load only detected formats
+  - **Lazy loading**: Each codec is imported and initialized only when used
 - **Key Types Added**:
   - `ImageBuilder` - Main fluent interface accepting Decoder/Encoder functions
   - `ProcessingResult` - Result object with conversion methods
   - `BuilderState` - Internal state with decoder/encoder functions
   - Function signatures using existing `Decoder`/`Encoder` types
 - **Bundle Size Benefits**: Only used codecs will be included in final bundle
-- **Test Results**: All 111 tests passing across 3 environments
+- **Test Results**: All 78 tests passing across 3 environments
 - **Git Commits**: 
   - 918c394 - "feat: add comprehensive type definitions for composable API"
   - 8069d20 - "feat: refactor helpers to contain actual codec logic for tree-shaking"
+  - 7f23548 - "feat: separate codecs into individual files for optimal tree-shaking"
 
 ### Next Steps
 Moving to Task 3: Implement core builder class. This will involve:
@@ -214,6 +224,9 @@ Moving to Task 3: Implement core builder class. This will involve:
 - [2024-12-20] Function-based APIs enable better bundle optimization than object/config-based approaches
 - [2024-12-20] Some decoder functions (like AVIF) can return null and need proper error handling
 - [2024-12-20] Moving format detection into the auto() helper improves modularity and tree-shaking effectiveness
+- [2024-12-20] Separating codecs into individual files enables maximum tree-shaking granularity
+- [2024-12-20] Dynamic imports in auto() prevent bundling all codecs when only auto-detection is needed
+- [2024-12-20] Each codec file should be self-contained with its own initialization logic
 
 ## Additional Technical Notes
 
@@ -228,6 +241,13 @@ This redesign will introduce breaking changes to the public API. Consider:
 2. Gradually migrate internal usage
 3. Deprecate old API with warnings
 4. Remove old API in next major version
+
+### Tree-shaking Architecture
+The codec separation enables optimal bundle sizes:
+- **Single format usage**: `import { webp } from 'pixly/codecs/webp'` - only WebP codec bundled
+- **Multiple formats**: `import { webp, png } from 'pixly'` - only used codecs bundled
+- **Auto-detection**: `import { auto } from 'pixly'` - format detection + dynamic loading
+- **Full suite**: `import * from 'pixly'` - all codecs available but tree-shakable
 
 ### Testing Strategy
 1. Unit tests for each component
