@@ -203,13 +203,7 @@ export const encodeProcessor = async (
 		throw new Error("Failed to encode into format");
 	}
 
-	const encodeOptions = {
-		width: processor.bitmap.width,
-		height: processor.bitmap.height,
-		...opts,
-	};
-
-	const result = await handler.encode(processor.bitmap, encodeOptions);
+	const result = await handler.encode(processor.bitmap);
 	return new Uint8Array(result);
 };
 

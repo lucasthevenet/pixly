@@ -1,16 +1,15 @@
 import { expect, it } from "vitest";
 import {
-	type PipelineTemplate,
 	type ProcessingConfig,
 	addOperation,
 	applyOperation,
 	compose,
-	createEditor,
 	createImageProcessor,
 	createPipeline,
 	crop,
 	flip,
 	pipe,
+	pixly,
 	processPipeline,
 	resize,
 	rotate,
@@ -18,7 +17,6 @@ import {
 	toBuffer,
 	toDataURL,
 } from "../src/index";
-import { createPipelineFromTemplate } from "../src/pipeline";
 import { getTestImage } from "./utils";
 
 it("API surface - should handle invalid input types gracefully", async () => {
@@ -87,14 +85,16 @@ it("API surface - encoding should encode a decoded PNG bitmap back to PNG", asyn
 });
 
 it("API surface - functional builder should allow chaining of transformation methods", async () => {
-	const builder = createEditor();
-	const chainedBuilder = builder.flip("horizontal").crop({
-		height: 10,
-		width: 10,
-		x: 0,
-		y: 0,
-		background: [0, 0, 0, 0],
-	});
+	const builder = pixly();
+	const chainedBuilder = builder.apply(flip("horizontal")).apply(
+		crop({
+			height: 10,
+			width: 10,
+			x: 0,
+			y: 0,
+			background: [0, 0, 0, 0],
+		}),
+	);
 
 	expect(typeof chainedBuilder.toBuffer).toBe("function");
 	expect(typeof chainedBuilder.toBlob).toBe("function");
@@ -102,7 +102,7 @@ it("API surface - functional builder should allow chaining of transformation met
 });
 
 it("API surface - functional builder should accept OutputOptions in output methods", async () => {
-	const builder = createEditor();
+	const builder = pixly();
 	const input = new Uint8Array([0]);
 
 	await expect(
@@ -293,26 +293,6 @@ it("Pipeline system - should create and execute complex pipelines", async () => 
 	expect(pipeline.operations).toHaveLength(4);
 });
 
-it("Pipeline system - should create pipelines from templates", async () => {
-	const template: PipelineTemplate = {
-		name: "social-media",
-		operations: [
-			resize({
-				width: 1080,
-				height: 1080,
-				fit: "cover",
-				background: [0, 0, 0, 0],
-				position: "center",
-			}),
-			rotate(0, [255, 255, 255, 255]),
-		],
-		outputFormat: "image/jpeg",
-	};
-
-	const pipeline = createPipelineFromTemplate(template);
-	expect(pipeline.operations).toHaveLength(2);
-});
-
 it("Configuration and strategies - should create processors with custom configs", async () => {
 	const config: ProcessingConfig = {
 		decoder: "image/png",
@@ -399,42 +379,47 @@ it("Error handling - should handle invalid operation parameters", async () => {
 });
 
 it("Functional builder advanced - should support complex transformation chains", async () => {
-	const builder = createEditor();
+	const builder = pixly();
 
 	const chainedBuilder = builder
-		.resize({
-			width: 400,
-			height: 300,
-			background: [0, 0, 0, 0],
-			fit: "contain",
-			position: "center",
-		})
-		.rotate(45, [128, 128, 128, 255])
-		.flip("vertical")
-		.crop({
-			x: 50,
-			y: 50,
-			width: 200,
-			height: 200,
-			background: [255, 255, 255, 255],
-		});
+		.apply(
+			resize({
+				width: 400,
+				height: 300,
+				background: [0, 0, 0, 0],
+				fit: "contain",
+				position: "center",
+			}),
+		)
+		.apply(rotate(45, [128, 128, 128, 255]))
+		.apply(flip("vertical"))
+		.apply(
+			crop({
+				x: 50,
+				y: 50,
+				width: 200,
+				height: 200,
+				background: [255, 255, 255, 255],
+			}),
+		);
 
 	expect(typeof chainedBuilder.toBuffer).toBe("function");
-	expect(typeof chainedBuilder.resize).toBe("function");
 });
 
 it("Functional builder advanced - should maintain builder state across operations", async () => {
-	const builder = createEditor();
+	const builder = pixly();
 
-	const step1 = builder.resize({
-		width: 100,
-		height: 100,
-		background: [0, 0, 0, 0],
-		fit: "contain",
-		position: "center",
-	});
-	const step2 = step1.rotate(90, [0, 0, 0, 0]);
-	const step3 = step2.flip("horizontal");
+	const step1 = builder.apply(
+		resize({
+			width: 100,
+			height: 100,
+			background: [0, 0, 0, 0],
+			fit: "contain",
+			position: "center",
+		}),
+	);
+	const step2 = step1.apply(rotate(90, [0, 0, 0, 0]));
+	const step3 = step2.apply(flip("horizontal"));
 
 	// Each step should return a new builder
 	expect(step1).not.toBe(builder);

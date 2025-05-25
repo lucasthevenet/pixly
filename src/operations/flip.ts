@@ -1,5 +1,7 @@
-import type { FlipDirection, OperationFunction } from "../types";
+import type { OperationFunction } from "../types";
 import { createOperation } from "./custom";
+
+export type FlipDirection = "horizontal" | "vertical" | "both";
 
 export const flipImage = async (
 	src: ImageData,

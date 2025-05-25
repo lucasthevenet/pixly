@@ -1,5 +1,17 @@
-import type { CropOptions, OperationFunction } from "../types";
+import type { Color, OperationFunction } from "../types";
 import { createOperation } from "./custom";
+
+export interface CropOptions {
+	/** The x position of the upper left pixel. */
+	x: number;
+	/** The y position of the upper left pixel. */
+	y: number;
+	/** The number of pixels wide to crop the image. */
+	width: number;
+	/** The number of pixels high to crop the image. */
+	height: number;
+	background: Color;
+}
 
 const ternaryPercent = (num: number, full: number) =>
 	num < 1 ? Math.round(num * full) : num;

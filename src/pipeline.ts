@@ -72,15 +72,3 @@ export const processPipelineToDataURL = async (
 	);
 	return toDataURL(processedProcessor, outputOpts);
 };
-
-export const createPipelineFromTemplate = (
-	template: PipelineTemplate,
-): Pipeline => {
-	let pipeline = createPipeline();
-
-	for (const operation of template.operations) {
-		pipeline = addOperation(pipeline, operation);
-	}
-
-	return pipeline;
-};

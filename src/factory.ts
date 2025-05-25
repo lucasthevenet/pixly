@@ -1,8 +1,4 @@
-import type { OutputOptions, ProcessingConfig } from "./core";
-import { crop } from "./operations/crop";
-import { flip } from "./operations/flip";
-import { resize } from "./operations/resize";
-import { rotate } from "./operations/rotate";
+import { type OutputOptions, type ProcessingConfig, compose } from "./core";
 import {
 	type Pipeline,
 	addOperation,
@@ -11,20 +7,11 @@ import {
 	processPipelineToBlob,
 	processPipelineToDataURL,
 } from "./pipeline";
-import type {
-	Color,
-	CropOptions,
-	FlipDirection,
-	OperationFunction,
-	ResizeOptions,
-} from "./types";
+import type { OperationFunction } from "./types";
 
 export interface ImageEditor {
-	resize: (opts: ResizeOptions) => ImageEditor;
-	rotate: (angle: number, color: Color) => ImageEditor;
-	flip: (direction: FlipDirection) => ImageEditor;
-	crop: (options: CropOptions) => ImageEditor;
-	use: (op: OperationFunction) => ImageEditor;
+	apply: (op: OperationFunction) => ImageEditor;
+	template: () => OperationFunction;
 	toBuffer: (
 		input: ArrayBuffer | Uint8Array | Blob | File | string,
 		opts: OutputOptions,
@@ -39,35 +26,17 @@ export interface ImageEditor {
 	) => Promise<string>;
 }
 
-export const createEditor = (config: ProcessingConfig = {}): ImageEditor => {
+export const pixly = (config: ProcessingConfig = {}): ImageEditor => {
 	const pipeline = createPipeline(config);
 
 	const createBuilder = (currentPipeline: Pipeline): ImageEditor => ({
-		resize: (opts: ResizeOptions) => {
-			const newPipeline = addOperation(currentPipeline, resize(opts));
-			return createBuilder(newPipeline);
-		},
-
-		rotate: (angle: number, color: Color) => {
-			const newPipeline = addOperation(currentPipeline, rotate(angle, color));
-			return createBuilder(newPipeline);
-		},
-
-		flip: (direction: FlipDirection) => {
-			const newPipeline = addOperation(currentPipeline, flip(direction));
-			return createBuilder(newPipeline);
-		},
-
-		crop: (options: CropOptions) => {
-			const newPipeline = addOperation(currentPipeline, crop(options));
-			return createBuilder(newPipeline);
-		},
-
-		use: (op: OperationFunction) => {
+		apply: (op: OperationFunction) => {
 			const newPipeline = addOperation(currentPipeline, op);
 			return createBuilder(newPipeline);
 		},
-
+		template: () => {
+			return compose(...currentPipeline.operations);
+		},
 		toBuffer: (
 			input: ArrayBuffer | Uint8Array | Blob | File | string,
 			opts: OutputOptions,

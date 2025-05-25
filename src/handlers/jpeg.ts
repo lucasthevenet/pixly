@@ -55,8 +55,8 @@ export const JpegHandler: ImageHandler = {
 		await initializeDecoder();
 		return decode(buffer);
 	},
-	async encode(image, options) {
+	async encode(image) {
 		await initializeEncoder();
-		return encode(image, options);
+		return encode(image);
 	},
 };

@@ -60,15 +60,13 @@ export type {
 	PipelineTemplate,
 } from "./pipeline";
 
-export { createEditor } from "./factory";
+export { pixly } from "./factory";
 
 export type { ImageEditor } from "./factory";
 
 export type {
 	MimeType,
 	Color,
-	FlipDirection,
-	CropOptions,
 	TransformOptions,
 	ImageFit,
 	ResizeOptions,

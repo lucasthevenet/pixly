@@ -46,20 +46,6 @@ export interface ResizeOptions {
 	background: Color;
 }
 
-export type FlipDirection = "horizontal" | "vertical" | "both";
-
-export interface CropOptions {
-	/** The x position of the upper left pixel. */
-	x: number;
-	/** The y position of the upper left pixel. */
-	y: number;
-	/** The number of pixels wide to crop the image. */
-	width: number;
-	/** The number of pixels high to crop the image. */
-	height: number;
-	background: Color;
-}
-
 export interface TransformOptions {
 	/** Width of resulting image. (optional, default null) */
 	width?: number | null;
@@ -85,15 +71,15 @@ export interface TransformOptions {
 	blurRadius?: number | null;
 	/** The number of degrees to rotate the image by. (optional, default null) */
 	rotate?: number | null;
-	/** The direction to mirror the image by. (optional, default null) */
-	flip?: FlipDirection | null;
-	/** The location to crop the source image before any other operations are applied. (optional, default null) */
-	crop?: CropOptions | null;
 }
 
+export type Decoder = (buffer: ArrayBuffer) => Promise<ImageData>;
+
+export type Encoder = (image: ImageData) => Promise<ArrayBuffer>;
+
 export interface ImageHandler {
-	decode(buffer: ArrayBuffer): Promise<ImageData>;
-	encode(image: ImageData, options: TransformOptions): Promise<ArrayBuffer>;
+	decode: Decoder;
+	encode: Encoder;
 }
 
 // Function-based operation types
