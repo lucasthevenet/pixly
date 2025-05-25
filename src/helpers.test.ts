@@ -13,202 +13,193 @@ import {
   avifEncoder,
   jxlEncoder,
   qoiEncoder,
-  customDecoder,
-  customEncoder,
+  getFormatFromMagicBytes,
 } from "./helpers";
-import type { DecoderConfig, EncoderConfig } from "./composable-types";
+import type { Decoder, Encoder, MimeType } from "./types";
 
 describe("Helper Functions", () => {
-  describe("Decoder Helpers", () => {
-    it("should create auto decoder config", () => {
-      const config = auto();
-      expect(config).toEqual({ type: "auto" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
+  describe("Magic Byte Detection", () => {
+    it("should detect PNG format", () => {
+      const pngMagic = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      expect(getFormatFromMagicBytes(pngMagic)).toBe("image/png");
     });
 
-    it("should create JPEG decoder config", () => {
-      const config = jpeg();
-      expect(config).toEqual({ type: "image/jpeg" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
+    it("should detect JPEG format", () => {
+      const jpegMagic = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+      expect(getFormatFromMagicBytes(jpegMagic)).toBe("image/jpeg");
     });
 
-    it("should create PNG decoder config", () => {
-      const config = png();
-      expect(config).toEqual({ type: "image/png" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
+    it("should detect WebP format", () => {
+      const webpMagic = new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]);
+      expect(getFormatFromMagicBytes(webpMagic)).toBe("image/webp");
     });
 
-    it("should create WebP decoder config", () => {
-      const config = webpDecoder();
-      expect(config).toEqual({ type: "image/webp" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
-    });
-
-    it("should create AVIF decoder config", () => {
-      const config = avif();
-      expect(config).toEqual({ type: "image/avif" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
-    });
-
-    it("should create JXL decoder config", () => {
-      const config = jxl();
-      expect(config).toEqual({ type: "image/jxl" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
-    });
-
-    it("should create QOI decoder config", () => {
-      const config = qoi();
-      expect(config).toEqual({ type: "image/qoi" });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
-    });
-
-    it("should create custom decoder config", () => {
-      const config = customDecoder("image/jpeg", true);
-      expect(config).toEqual({
-        type: "image/jpeg",
-        preserveMetadata: true,
-      });
-      expectTypeOf(config).toEqualTypeOf<DecoderConfig>();
-    });
-
-    it("should create custom decoder config without metadata preservation", () => {
-      const config = customDecoder("image/png");
-      expect(config).toEqual({
-        type: "image/png",
-        preserveMetadata: undefined,
-      });
+    it("should return undefined for unknown format", () => {
+      const unknownMagic = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
+      expect(getFormatFromMagicBytes(unknownMagic)).toBeUndefined();
     });
   });
 
-  describe("Encoder Helpers", () => {
-    it("should create WebP encoder config with defaults", () => {
-      const config = webp();
-      expect(config).toEqual({
-        format: "image/webp",
-        quality: 80,
-        compressionLevel: 9,
-      });
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+  describe("Decoder Functions", () => {
+    it("should create auto decoder function", () => {
+      const decoder = auto();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create WebP encoder config with custom options", () => {
-      const config = webp({ quality: 90, compressionLevel: 8 });
-      expect(config).toEqual({
-        format: "image/webp",
-        quality: 90,
-        compressionLevel: 8,
-      });
+    it("should create auto decoder with metadata preservation", () => {
+      const decoder = auto(true);
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create JPEG encoder config with defaults", () => {
-      const config = jpegEncoder();
-      expect(config).toEqual({
-        format: "image/jpeg",
-        quality: 80,
-      });
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+    it("should create JPEG decoder function", () => {
+      const decoder = jpeg();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create JPEG encoder config with custom quality", () => {
-      const config = jpegEncoder({ quality: 95 });
-      expect(config).toEqual({
-        format: "image/jpeg",
-        quality: 95,
-      });
+    it("should create PNG decoder function", () => {
+      const decoder = png();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create PNG encoder config with defaults", () => {
-      const config = pngEncoder();
-      expect(config).toEqual({
-        format: "image/png",
-        compressionLevel: 9,
-      });
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+    it("should create WebP decoder function", () => {
+      const decoder = webpDecoder();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create PNG encoder config with custom compression", () => {
-      const config = pngEncoder({ compressionLevel: 6 });
-      expect(config).toEqual({
-        format: "image/png",
-        compressionLevel: 6,
-      });
+    it("should create AVIF decoder function", () => {
+      const decoder = avif();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create AVIF encoder config with defaults", () => {
-      const config = avifEncoder();
-      expect(config).toEqual({
-        format: "image/avif",
-        quality: 80,
-      });
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+    it("should create JXL decoder function", () => {
+      const decoder = jxl();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
     });
 
-    it("should create AVIF encoder config with custom quality", () => {
-      const config = avifEncoder({ quality: 70 });
-      expect(config).toEqual({
-        format: "image/avif",
-        quality: 70,
-      });
+    it("should create QOI decoder function", () => {
+      const decoder = qoi();
+      expectTypeOf(decoder).toEqualTypeOf<Decoder>();
+      expect(typeof decoder).toBe("function");
+    });
+  });
+
+  describe("Encoder Functions", () => {
+    it("should create WebP encoder with defaults", () => {
+      const encoder = webp();
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
     });
 
-    it("should create JXL encoder config with defaults", () => {
-      const config = jxlEncoder();
-      expect(config).toEqual({
-        format: "image/jxl",
-        quality: 80,
-      });
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+    it("should create WebP encoder with custom quality", () => {
+      const encoder = webp(90);
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
     });
 
-    it("should create JXL encoder config with custom quality", () => {
-      const config = jxlEncoder({ quality: 85 });
-      expect(config).toEqual({
-        format: "image/jxl",
-        quality: 85,
-      });
+    it("should create WebP encoder with custom quality and compression", () => {
+      const encoder = webp(90, 8);
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
     });
 
-    it("should create QOI encoder config", () => {
-      const config = qoiEncoder();
-      expect(config).toEqual({
-        format: "image/qoi",
-      });
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+    it("should create JPEG encoder with defaults", () => {
+      const encoder = jpegEncoder();
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
     });
 
-    it("should create custom encoder config", () => {
-      const customConfig: EncoderConfig = {
-        format: "image/webp",
-        quality: 95,
-        compressionLevel: 6,
-        loop: 5,
-        delay: 200,
-      };
-      const config = customEncoder(customConfig);
-      expect(config).toEqual(customConfig);
-      expect(config).not.toBe(customConfig); // Should be a copy
-      expectTypeOf(config).toEqualTypeOf<EncoderConfig>();
+    it("should create JPEG encoder with custom quality", () => {
+      const encoder = jpegEncoder(95);
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create PNG encoder with defaults", () => {
+      const encoder = pngEncoder();
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create PNG encoder with custom compression", () => {
+      const encoder = pngEncoder(6);
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create AVIF encoder with defaults", () => {
+      const encoder = avifEncoder();
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create AVIF encoder with custom quality", () => {
+      const encoder = avifEncoder(70);
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create JXL encoder with defaults", () => {
+      const encoder = jxlEncoder();
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create JXL encoder with custom quality", () => {
+      const encoder = jxlEncoder(85);
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
+    });
+
+    it("should create QOI encoder", () => {
+      const encoder = qoiEncoder();
+      expectTypeOf(encoder).toEqualTypeOf<Encoder>();
+      expect(typeof encoder).toBe("function");
     });
   });
 
   describe("Type Safety", () => {
-    it("should maintain proper types for all helpers", () => {
-      // Decoder helpers should return DecoderConfig
-      expectTypeOf(auto()).toEqualTypeOf<DecoderConfig>();
-      expectTypeOf(jpeg()).toEqualTypeOf<DecoderConfig>();
-      expectTypeOf(png()).toEqualTypeOf<DecoderConfig>();
-      expectTypeOf(webpDecoder()).toEqualTypeOf<DecoderConfig>();
-      expectTypeOf(avif()).toEqualTypeOf<DecoderConfig>();
-      expectTypeOf(jxl()).toEqualTypeOf<DecoderConfig>();
-      expectTypeOf(qoi()).toEqualTypeOf<DecoderConfig>();
+    it("should maintain proper types for all decoder helpers", () => {
+      expectTypeOf(auto()).toEqualTypeOf<Decoder>();
+      expectTypeOf(auto(true)).toEqualTypeOf<Decoder>();
+      expectTypeOf(jpeg()).toEqualTypeOf<Decoder>();
+      expectTypeOf(jpeg(false)).toEqualTypeOf<Decoder>();
+      expectTypeOf(png()).toEqualTypeOf<Decoder>();
+      expectTypeOf(webpDecoder()).toEqualTypeOf<Decoder>();
+      expectTypeOf(avif()).toEqualTypeOf<Decoder>();
+      expectTypeOf(jxl()).toEqualTypeOf<Decoder>();
+      expectTypeOf(qoi()).toEqualTypeOf<Decoder>();
+    });
 
-      // Encoder helpers should return EncoderConfig
-      expectTypeOf(webp()).toEqualTypeOf<EncoderConfig>();
-      expectTypeOf(jpegEncoder()).toEqualTypeOf<EncoderConfig>();
-      expectTypeOf(pngEncoder()).toEqualTypeOf<EncoderConfig>();
-      expectTypeOf(avifEncoder()).toEqualTypeOf<EncoderConfig>();
-      expectTypeOf(jxlEncoder()).toEqualTypeOf<EncoderConfig>();
-      expectTypeOf(qoiEncoder()).toEqualTypeOf<EncoderConfig>();
+    it("should maintain proper types for all encoder helpers", () => {
+      expectTypeOf(webp()).toEqualTypeOf<Encoder>();
+      expectTypeOf(webp(80)).toEqualTypeOf<Encoder>();
+      expectTypeOf(webp(80, 9)).toEqualTypeOf<Encoder>();
+      expectTypeOf(jpegEncoder()).toEqualTypeOf<Encoder>();
+      expectTypeOf(jpegEncoder(90)).toEqualTypeOf<Encoder>();
+      expectTypeOf(pngEncoder()).toEqualTypeOf<Encoder>();
+      expectTypeOf(pngEncoder(8)).toEqualTypeOf<Encoder>();
+      expectTypeOf(avifEncoder()).toEqualTypeOf<Encoder>();
+      expectTypeOf(avifEncoder(75)).toEqualTypeOf<Encoder>();
+      expectTypeOf(jxlEncoder()).toEqualTypeOf<Encoder>();
+      expectTypeOf(jxlEncoder(85)).toEqualTypeOf<Encoder>();
+      expectTypeOf(qoiEncoder()).toEqualTypeOf<Encoder>();
+    });
+
+    it("should accept proper function signatures", () => {
+      const decoder = auto();
+      expectTypeOf(decoder).parameter(0).toEqualTypeOf<ArrayBuffer>();
+      expectTypeOf(decoder).returns.toEqualTypeOf<Promise<ImageData>>();
+
+      const encoder = webp();
+      expectTypeOf(encoder).parameter(0).toEqualTypeOf<ImageData>();
+      expectTypeOf(encoder).returns.toEqualTypeOf<Promise<ArrayBuffer>>();
     });
   });
 });

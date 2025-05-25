@@ -146,7 +146,6 @@ const blob = result.toBlob();
 ## Project Status Board
 
 ### TODO
-- [ ] Task 2: Design new type definitions
 - [ ] Task 3: Implement core builder class
 - [ ] Task 4: Implement decoder/encoder methods
 - [ ] Task 5: Implement preset system
@@ -157,33 +156,53 @@ const blob = result.toBlob();
 - [ ] Task 10: Performance testing and optimization
 
 ### In Progress
-- [ ] Task 2: Design new type definitions
+- [ ] Task 3: Implement core builder class
 
 ### Completed
 - [x] Task 1: Create feature branch (feat/composable-api-redesign)
+- [x] Task 2: Design new type definitions
 
 ### Blocked
 
 ## Current Status / Progress Tracking
-- **Status**: Task 1 completed, beginning Task 2
-- **Next Step**: Design new type definitions for the composable API
-- **Last Updated**: Task 1 completed - feature branch created (feat/composable-api-redesign)
+- **Status**: Task 2 completed, beginning Task 3
+- **Next Step**: Implement core builder class with basic structure
+- **Last Updated**: Task 2 completed - comprehensive type definitions created
 
 ## Executor's Feedback or Assistance Requests
 
 ### Task 1 Completion Report
 - ✅ **Completed**: Feature branch `feat/composable-api-redesign` successfully created
 - **Git Status**: On branch feat/composable-api-redesign, working tree clean
-- **Ready for**: Task 2 - Design new type definitions
+
+### Task 2 Completion Report
+- ✅ **Completed**: Comprehensive type definitions for composable API
+- **Files Created**:
+  - `src/composable-types.ts` - All interfaces and types for the new API
+  - `src/helpers.ts` - Decoder/encoder helper functions
+  - `src/composable-types.test.ts` - 19 tests for type definitions
+  - `src/helpers.test.ts` - 22 tests for helper functions
+- **Key Types Added**:
+  - `ImageBuilder` - Main fluent interface
+  - `ProcessingResult` - Result object with conversion methods
+  - `DecoderConfig` & `EncoderConfig` - Configuration types
+  - `BuilderState` - Internal state management
+  - Format-specific encoder options for all supported formats
+- **Test Results**: All 123 tests passing across 3 environments
+- **Git Commit**: 918c394 - "feat: add comprehensive type definitions for composable API"
 
 ### Next Steps
-Moving to Task 2: Design new type definitions. This will involve:
-1. Creating comprehensive TypeScript interfaces for the new API
-2. Defining `ImageBuilder`, `ProcessingResult`, decoder/encoder configs
-3. Ensuring full type safety and inference throughout the fluent API
+Moving to Task 3: Implement core builder class. This will involve:
+1. Creating the `ImageBuilder` class with constructor
+2. Internal state management for operations, decoder, encoder
+3. Basic `.apply()` method structure
+4. Unit tests for builder creation and state
 
 ## Lessons Learned
-<!-- To be documented during implementation -->
+- [2024-12-20] Separating new API types into dedicated files improves maintainability and prevents circular dependencies
+- [2024-12-20] Helper functions with good defaults make the API more user-friendly while maintaining flexibility
+- [2024-12-20] Comprehensive type tests ensure proper TypeScript inference and catch type issues early
+- [2024-12-20] Building types first enables test-driven development for the implementation
 
 ## Additional Technical Notes
 
