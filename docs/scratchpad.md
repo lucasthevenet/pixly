@@ -1,24 +1,25 @@
 # Scratchpad
 
 ## Current Task
+- **Task**: Rebuild API into more composable structure
+- **Implementation Plan**: `docs/implementation-plan/composable-api-redesign.md`
+- **Status**: Planning phase complete - Ready to begin implementation
+- **Created**: 2024-12-20
+- **Planning Completed**: 2024-12-20
+- **Key Findings**:
+  - Current API uses factory pattern with direct output methods
+  - Target API needs fluent builder pattern with `.apply()` method
+  - Preset system required for composing operations
+  - Separate result object needed for output conversions
+  - Breaking changes will require major version bump
+
+## Task History
+### Custom Operations Support (Completed 2024-01-01)
 - **Task**: Enable custom operations in image processing library
 - **Implementation Plan**: `docs/implementation-plan/custom-operations-support.md`
 - **Status**: All Tasks 1-10 Complete - Custom Operations Feature Fully Implemented and Ready for Merge
-- **Created**: 2024-01-01
-- **Planning Completed**: 2024-01-01
-- **Architecture Revision**: 2024-01-01 - Changed from registry pattern to middleware-like function approach
-- **Scope Expansion**: 2024-01-01 - Complete migration of all operations to function-based style (no legacy objects)
-- **Key Findings**:
-  - Current implementation uses a hard-coded switch statement in `applyOperation`
-  - Discovered existing blur operation that needs integration
-  - All operations follow pattern: `async (src: ImageData, ...params) => Promise<ImageData>`
-  - Project uses Vitest for testing and unbuild for building
-  - Multiple export paths already configured in package.json
-  - Middleware approach is cleaner and more functional than registry pattern
-  - All operations will be migrated to the new function style, eliminating operation objects entirely
-
-## Task History
-<!-- Previous tasks will be listed here -->
+- **Architecture Revision**: Changed from registry pattern to middleware-like function approach
+- **Scope Expansion**: Complete migration of all operations to function-based style (no legacy objects)
 
 ## Lessons Learned
 - [2024-01-01] Always check for existing but unintegrated code (found blur.ts operation not in switch statement)
@@ -36,3 +37,6 @@
 - [2024-01-01] Examples folder removed - standalone examples will be created at a later date, documentation contains inline examples for now
 - [2024-01-01] Task 10 completed: Performance testing and optimization completed with documented performance considerations and architectural validation
 - [2024-01-01] All tasks 1-10 successfully completed - Custom Operations Feature is fully implemented and ready for final review and merge
+- [2024-12-20] When redesigning APIs, consider backward compatibility and provide migration paths
+- [2024-12-20] Fluent/builder APIs should return new instances to maintain immutability
+- [2024-12-20] Preset systems should compose operations into reusable functions
