@@ -5,7 +5,7 @@ import type {
 	Operation,
 	OperationFunction,
 } from "./types";
-import { decodeFromBase64, encodeToBase64 } from "./utils/base64";
+import { bytesToBase64DataUrl, dataUrlToBytes } from "./utils/base64";
 
 /** Configuration for creating an ImageBuilder */
 interface BuilderConfig {
@@ -124,11 +124,11 @@ const createBuilder = <TBrand = {}>(
 					return new Blob([result.data], { type: result.format });
 				},
 
-				toDataURL: () => {
+				toDataURL: async () => {
 					const bytes = new Uint8Array(result.data);
-					const binary = encodeToBase64(bytes);
+					const dataURL = await bytesToBase64DataUrl(bytes);
 
-					return `data:${result.format};base64,${btoa(binary)}`;
+					return dataURL;
 				},
 			};
 		},
@@ -165,8 +165,7 @@ async function normalizeImageInput(input: ImageInput) {
 	let buffer: Uint8Array;
 
 	if (typeof input === "string" && input.startsWith("data:")) {
-		const base64 = input.split(",")[1]!;
-		buffer = decodeFromBase64(base64);
+		buffer = await dataUrlToBytes(input);
 	} else if (typeof input === "string") {
 		const res = await fetch(input);
 		buffer = new Uint8Array(await res.arrayBuffer());
