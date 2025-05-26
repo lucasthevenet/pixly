@@ -29,8 +29,7 @@
 		"@jsquash/png": "^3.1.0",
 		"@jsquash/qoi": "^1.1.0",
 		"@jsquash/resize": "^2.1.0",
-		"@jsquash/webp": "^1.5.0",
-		"base64-js": "^1.5.1"
+		"@jsquash/webp": "^1.5.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
