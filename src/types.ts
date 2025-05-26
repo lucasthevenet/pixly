@@ -6,35 +6,6 @@ export type MimeType =
 	| "image/jxl"
 	| "image/qoi";
 
-export type ColorSpace = "display-p3" | "srgb";
-
-export class ImageData {
-	readonly data: Uint8ClampedArray;
-	readonly width: number;
-	readonly height: number;
-	readonly colorSpace: ColorSpace;
-
-	constructor(
-		data: Uint8ClampedArray,
-		width: number,
-		height: number,
-		colorSpace: ColorSpace = "srgb",
-	) {
-		this.data = data;
-		this.width = width;
-		this.height = height;
-		this.colorSpace = colorSpace;
-	}
-}
-
-export type ResponsiveSize = {
-	size: {
-		width: number;
-		height?: number;
-	};
-	maxWidth?: number;
-};
-
 /** RGBA hex values 0...255 */
 export type Color = [number, number, number, number];
 
@@ -65,52 +36,31 @@ export interface ResizeOptions {
 	background: Color;
 }
 
-export type FlipDirection = "horizontal" | "vertical" | "both";
+export type Decoder = (buffer: ArrayBuffer) => Promise<DecoderResult>;
 
-export interface CropOptions {
-	/** The x position of the upper left pixel. */
-	x: number;
-	/** The y position of the upper left pixel. */
-	y: number;
-	/** The number of pixels wide to crop the image. */
-	width: number;
-	/** The number of pixels high to crop the image. */
-	height: number;
-	background: Color;
-}
+export type DecoderResult = {
+	format: MimeType;
+	data: ImageData;
+};
 
-export interface TransformOptions {
-	/** Width of resulting image. (optional, default null) */
-	width?: number | null;
-	/** Height of resulting image. If width is present, this takes priority. (optional, default null) */
-	height?: number | null;
-	/** The content type of the resulting image. (optional, default source type) */
-	contentType?: MimeType;
-	/** How the image should be resized to fit both provided dimensions. (optional, default 'contain') */
-	fit?: ImageFit;
-	/** Position to use when fit is cover or contain. (optional, default 'center') */
-	position?: ImagePosition | string | number;
-	/** Background color of resulting image. (optional, default [0x00, 0x00, 0x00, 0x00]) */
-	background?: Color;
-	/** Quality, integer 1-100. (optional, default 80) */
-	quality?: number;
-	/** zlib compression level, 0-9. (optional, default 9) */
-	compressionLevel?: number;
-	/** Number of animation iterations, use 0 for infinite animation. (optional, default 0) */
-	loop?: number;
-	/** Delay between animation frames (in milliseconds). (optional, default 100) */
-	delay?: number;
-	/** The number of pixels to blur the image by. (optional, default null) */
-	blurRadius?: number | null;
-	/** The number of degrees to rotate the image by. (optional, default null) */
-	rotate?: number | null;
-	/** The direction to mirror the image by. (optional, default null) */
-	flip?: FlipDirection | null;
-	/** The location to crop the source image before any other operations are applied. (optional, default null) */
-	crop?: CropOptions | null;
-}
+export type Encoder = (image: ImageData) => Promise<EncoderResult>;
 
-export interface ImageHandler {
-	decode(buffer: ArrayBuffer): Promise<ImageData>;
-	encode(image: ImageData, options: TransformOptions): Promise<ArrayBuffer>;
-}
+export type EncoderResult = {
+	format: MimeType;
+	data: ArrayBuffer;
+};
+
+// Function-based operation types
+export type OperationFunction = (bitmap: ImageData) => Promise<ImageData>;
+
+// All operations are now functions
+export type Operation = OperationFunction;
+
+// Helper type for creating parameterized operations
+export type OperationHandler<T> = (
+	bitmap: ImageData,
+	params: T,
+) => Promise<ImageData>;
+
+/** Input type for image processing */
+export type ImageInput = ArrayBuffer | Uint8Array | Blob | File | string;

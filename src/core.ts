@@ -1,162 +1,167 @@
-import { AvifHandler } from "./handlers/avif";
-import { JpegHandler } from "./handlers/jpeg";
-import { JxlHandler } from "./handlers/jxl";
-import { PngHandler } from "./handlers/png";
-import { QoiHandler } from "./handlers/qoi";
-import { WebpHandler } from "./handlers/webp";
-import { cropImage } from "./operations/crop";
-import { flipImage } from "./operations/flip";
-import { resizeImage } from "./operations/resize";
-import { resizeImageWasm } from "./operations/resize-wasm";
-import { rotateImage } from "./operations/rotate";
 import type {
-	Color,
-	CropOptions,
-	FlipDirection,
-	ImageHandler,
-	MimeType,
-	ResizeOptions,
-	TransformOptions,
+	Decoder,
+	Encoder,
+	ImageInput,
+	Operation,
+	OperationFunction,
 } from "./types";
+import { encodeToDataURL } from "./utils/base64";
 
-export const typeHandlers: Record<MimeType, ImageHandler> = {
-	"image/png": PngHandler,
-	"image/jpeg": JpegHandler,
-	"image/avif": AvifHandler,
-	"image/webp": WebpHandler,
-	"image/qoi": QoiHandler,
-	"image/jxl": JxlHandler,
-};
-
-// Core types
-export interface OutputOptions extends TransformOptions {
-	format: MimeType;
+/** Configuration for creating an ImageBuilder */
+interface BuilderConfig {
+	decoder?: Decoder;
+	encoder?: Encoder;
 }
 
-export interface ProcessingConfig {
-	decoder?: "auto" | MimeType;
-	preserveMetadata?: boolean;
+interface Pipeline {
+	operations: Operation[];
+	config: BuilderConfig;
 }
 
-export interface ImageProcessor {
-	buffer: Uint8Array;
-	bitmap: ImageData | null;
-	config: ProcessingConfig;
+type WithDecoder = { readonly _decoder: unique symbol };
+type WithEncoder = { readonly _encoder: unique symbol };
+
+/** Base image editor interface for presets (no encoder/decoder) */
+interface PresetableImageEditor<TBrand = {}> {
+	/** Apply an operation to the image processing chain */
+	apply(operation: OperationFunction): ImageEditor<TBrand>;
+
+	/** Set the decoder function for input processing */
+	decoder(decoderFn: Decoder): ImageEditor<TBrand & WithDecoder>;
+
+	/** Set the encoder function for output processing */
+	encoder(encoderFn: Encoder): ImageEditor<TBrand & WithEncoder>;
+
+	/** Create a preset from the current operation chain */
+	preset(): OperationFunction;
 }
 
-export interface Operation {
-	type: "resize" | "rotate" | "flip" | "crop";
-	params: unknown;
+/** Image editor with only decoder set */
+interface DecoderOnlyImageEditor<TBrand> {
+	/** Apply an operation to the image processing chain */
+	apply(operation: OperationFunction): ImageEditor<TBrand>;
+
+	/** Set the encoder function for output processing */
+	encoder(encoderFn: Encoder): ImageEditor<TBrand & WithEncoder>;
 }
 
-export interface ResizeOperation extends Operation {
-	type: "resize";
-	params: ResizeOptions;
+/** Image editor with only encoder set */
+interface EncoderOnlyImageEditor<TBrand> {
+	/** Apply an operation to the image processing chain */
+	apply(operation: OperationFunction): ImageEditor<TBrand>;
+
+	/** Set the decoder function for input processing */
+	decoder(decoderFn: Decoder): ImageEditor<TBrand & WithDecoder>;
 }
 
-export interface RotateOperation extends Operation {
-	type: "rotate";
-	params: { angle: number; color: Color };
+/** Image editor that can process (has both encoder and decoder) */
+interface ProcessableImageEditor<TBrand> {
+	/** Apply an operation to the image processing chain */
+	apply(operation: OperationFunction): ImageEditor<TBrand>;
+
+	/** Process the input image with the configured operations */
+	process(input: ImageInput): Promise<ProcessingResult>;
 }
 
-export interface FlipOperation extends Operation {
-	type: "flip";
-	params: { direction: FlipDirection };
+/** Union type that controls available methods based on configuration */
+export type ImageEditor<TBrand = {}> = TBrand extends WithDecoder
+	? TBrand extends WithEncoder
+		? ProcessableImageEditor<TBrand> // Both: can only apply and process
+		: DecoderOnlyImageEditor<TBrand> // Decoder only: can apply and set encoder
+	: TBrand extends WithEncoder
+		? EncoderOnlyImageEditor<TBrand> // Encoder only: can apply and set decoder
+		: PresetableImageEditor<TBrand>; // Neither: can do everything except process
+
+/** Result object returned after processing */
+export interface ProcessingResult {
+	/** Convert the processed image to a Uint8Array buffer */
+	toBuffer(): Uint8Array;
+	/** Convert the processed image to a Blob */
+	toBlob(): Blob;
+	/** Convert the processed image to a data URL string */
+	toDataURL(): string;
 }
 
-export interface CropOperation extends Operation {
-	type: "crop";
-	params: CropOptions;
-}
+const createBuilder = <TBrand = {}>(
+	currentPipeline: Pipeline = {
+		config: {},
+		operations: [],
+	},
+): ImageEditor<TBrand> =>
+	({
+		apply: (op: OperationFunction) => {
+			const newPipeline = addOperation(currentPipeline, op);
+			return createBuilder<TBrand>(newPipeline);
+		},
+		preset: () => {
+			return pipe(...currentPipeline.operations);
+		},
+		encoder: (encoderFn: Encoder) => {
+			const newPipeline = setConfig(currentPipeline, { encoder: encoderFn });
+			return createBuilder<TBrand & WithEncoder>(newPipeline);
+		},
+		decoder: (decoderFn: Decoder) => {
+			const newPipeline = setConfig(currentPipeline, { decoder: decoderFn });
+			return createBuilder<TBrand & WithDecoder>(newPipeline);
+		},
+		process: async (input: ImageInput) => {
+			if (!currentPipeline.config.encoder || !currentPipeline.config.decoder) {
+				throw new Error("Missing encoder or decoder");
+			}
+			const buffer = await normalizeImageInput(input);
+			const decoded = await currentPipeline.config.decoder(
+				buffer.buffer as ArrayBuffer,
+			);
+			const processed = await pipe(...currentPipeline.operations)(decoded.data);
+			const result = await currentPipeline.config.encoder(processed);
 
-export type ImageOperation =
-	| ResizeOperation
-	| RotateOperation
-	| FlipOperation
-	| CropOperation;
+			return {
+				toBuffer: () => {
+					return new Uint8Array(result.data);
+				},
 
-export interface Pipeline {
-	operations: ImageOperation[];
-	config: ProcessingConfig;
-}
+				toBlob: () => {
+					return new Blob([result.data], { type: result.format });
+				},
 
-export interface PipelineTemplate {
-	name: string;
-	operations: ImageOperation[];
-	outputFormat: MimeType;
-}
+				toDataURL: async () => {
+					const bytes = new Uint8Array(result.data);
+					const dataURL = await encodeToDataURL(bytes, result.format);
 
-// Core utility functions
-export const getFormatFromMagicBytes = (
-	magic: Uint8Array,
-): MimeType | undefined => {
-	if (
-		magic[0] === 0x89 &&
-		magic[1] === 0x50 &&
-		magic[2] === 0x4e &&
-		magic[3] === 0x47
-	) {
-		return "image/png";
-	}
-	if (magic[0] === 0xff && magic[1] === 0xd8) {
-		return "image/jpeg";
-	}
-	if (
-		magic[0] === 0x52 &&
-		magic[1] === 0x49 &&
-		magic[2] === 0x46 &&
-		magic[3] === 0x46 &&
-		magic[8] === 0x57 &&
-		magic[9] === 0x45 &&
-		magic[10] === 0x42 &&
-		magic[11] === 0x50
-	) {
-		return "image/webp";
-	}
-	if (
-		magic[0] === 0x00 &&
-		magic[1] === 0x00 &&
-		magic[2] === 0x00 &&
-		magic[3] === 0x0c &&
-		magic[4] === 0x6a &&
-		magic[5] === 0x58 &&
-		magic[6] === 0x4c &&
-		magic[7] === 0x20
-	) {
-		return "image/jxl";
-	}
-	if (
-		magic[0] === 0x00 &&
-		magic[1] === 0x00 &&
-		magic[2] === 0x00 &&
-		magic[3] === 0x1c &&
-		magic[4] === 0x66 &&
-		magic[5] === 0x74 &&
-		magic[6] === 0x79 &&
-		magic[7] === 0x70 &&
-		magic[8] === 0x61 &&
-		magic[9] === 0x76 &&
-		magic[10] === 0x69 &&
-		magic[11] === 0x66
-	) {
-		return "image/avif";
-	}
-	if (
-		magic[0] === 0x71 &&
-		magic[1] === 0x6f &&
-		magic[2] === 0x69 &&
-		magic[3] === 0x66
-	) {
-		return "image/qoi";
-	}
-	return undefined;
-};
+					return dataURL;
+				},
+			};
+		},
+	}) as unknown as ImageEditor<TBrand>;
 
-// Input loading function
-export const loadInput = async (
-	input: ArrayBuffer | Uint8Array | Blob | File | string,
-	config: ProcessingConfig = {},
-): Promise<{ buffer: Uint8Array; bitmap: ImageData | null }> => {
+export const apply = createBuilder().apply;
+export const decoder = createBuilder().decoder;
+export const encoder = createBuilder().encoder;
+
+const addOperation = (pipeline: Pipeline, operation: Operation): Pipeline => ({
+	...pipeline,
+	operations: [...pipeline.operations, operation],
+});
+
+const setConfig = (pipeline: Pipeline, config: BuilderConfig): Pipeline => ({
+	...pipeline,
+	config: {
+		...pipeline.config,
+		...config,
+	},
+});
+
+const pipe =
+	<T>(...fns: Array<(arg: T) => Promise<T>>) =>
+	async (initial: T): Promise<T> => {
+		let result = initial;
+		for (const fn of fns) {
+			result = await fn(result);
+		}
+		return result;
+	};
+
+async function normalizeImageInput(input: ImageInput) {
 	let buffer: Uint8Array;
 
 	if (typeof input === "string") {
@@ -172,168 +177,5 @@ export const loadInput = async (
 		throw new Error("Unsupported input type");
 	}
 
-	let bitmap: ImageData | null = null;
-	try {
-		const magic = buffer.slice(0, 16);
-		const format =
-			config.decoder === "auto" || !config.decoder
-				? (getFormatFromMagicBytes(magic) ?? "image/png")
-				: config.decoder;
-
-		if (format in typeHandlers) {
-			const result = await typeHandlers[format].decode(
-				buffer.buffer as ArrayBuffer,
-			);
-			if (result) {
-				bitmap = result;
-			}
-		}
-	} catch (err) {
-		console.log(err);
-		bitmap = null;
-	}
-
-	return { buffer, bitmap };
-};
-
-// Core processor creation function
-export const createImageProcessor = async (
-	input: ArrayBuffer | Uint8Array | Blob | File | string,
-	config: ProcessingConfig = {},
-): Promise<ImageProcessor> => {
-	const { buffer, bitmap } = await loadInput(input, config);
-	return { buffer, bitmap, config };
-};
-
-// Operation application functions
-export const applyOperation = async (
-	processor: ImageProcessor,
-	operation: ImageOperation,
-): Promise<ImageProcessor> => {
-	if (!processor.bitmap) {
-		return {
-			...processor,
-		};
-	}
-
-	let newBitmap = processor.bitmap;
-
-	switch (operation.type) {
-		case "resize":
-			newBitmap = await resizeImage(newBitmap, operation.params);
-			break;
-		case "rotate":
-			newBitmap = await rotateImage(
-				newBitmap,
-				operation.params.angle,
-				operation.params.color,
-			);
-			break;
-		case "flip":
-			newBitmap = await flipImage(newBitmap, operation.params.direction);
-			break;
-		case "crop":
-			newBitmap = await cropImage(newBitmap, operation.params);
-			break;
-	}
-
-	return {
-		...processor,
-		bitmap: newBitmap,
-	};
-};
-
-export const applyOperations = async (
-	processor: ImageProcessor,
-	operations: ImageOperation[],
-): Promise<ImageProcessor> => {
-	let currentProcessor = processor;
-	for (const operation of operations) {
-		currentProcessor = await applyOperation(currentProcessor, operation);
-	}
-	return currentProcessor;
-};
-
-// Encoding functions
-export const encodeProcessor = async (
-	processor: ImageProcessor,
-	opts: OutputOptions,
-): Promise<Uint8Array> => {
-	const format = opts.format;
-	const handler = typeHandlers[format];
-
-	if (!handler || !processor.bitmap) {
-		throw new Error("Failed to encode into format");
-	}
-
-	const encodeOptions = {
-		width: processor.bitmap.width,
-		height: processor.bitmap.height,
-		...opts,
-	};
-
-	const result = await handler.encode(processor.bitmap, encodeOptions);
-	return new Uint8Array(result);
-};
-
-export const toBuffer = async (
-	processor: ImageProcessor,
-	opts: OutputOptions,
-): Promise<Uint8Array> => {
-	if (!processor.bitmap) return processor.buffer;
-	return encodeProcessor(processor, opts);
-};
-
-export const toBlob = async (
-	processor: ImageProcessor,
-	opts: OutputOptions,
-): Promise<Blob> => {
-	const buffer = await toBuffer(processor, opts);
-	const format = opts.format;
-	return new Blob([buffer], { type: format });
-};
-
-export const toDataURL = async (
-	processor: ImageProcessor,
-	opts: OutputOptions,
-): Promise<string> => {
-	const buffer = await toBuffer(processor, opts);
-	const format = opts.format;
-	const base64 = btoa(String.fromCharCode(...buffer));
-	return `data:${format};base64,${base64}`;
-};
-
-// Operation factory functions (curried for composition)
-export const resize =
-	(opts: ResizeOptions) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "resize", params: opts });
-
-export const rotate =
-	(angle: number, color: Color) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "rotate", params: { angle, color } });
-
-export const flip =
-	(direction: FlipDirection) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "flip", params: { direction } });
-
-export const crop =
-	(options: CropOptions) =>
-	(processor: ImageProcessor): Promise<ImageProcessor> =>
-		applyOperation(processor, { type: "crop", params: options });
-
-// Composition utilities
-export const pipe =
-	<T>(...fns: Array<(arg: T) => Promise<T>>) =>
-	async (initial: T): Promise<T> => {
-		let result = initial;
-		for (const fn of fns) {
-			result = await fn(result);
-		}
-		return result;
-	};
-
-export const compose = <T>(...fns: Array<(arg: T) => Promise<T>>) =>
-	pipe(...fns.reverse());
+	return buffer;
+}

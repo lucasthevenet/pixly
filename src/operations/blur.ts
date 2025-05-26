@@ -1,4 +1,5 @@
-import type { ImageData } from "../types";
+import type { OperationFunction } from "../types";
+import { createOperation } from "./custom";
 
 const updateDataTextureFromChannelArrs = (
 	rgba: Uint8ClampedArray,
@@ -222,3 +223,7 @@ export const blurImage = async (
 
 	return src;
 };
+
+export function blur(radius: number): OperationFunction {
+	return createOperation(blurImage, radius);
+}

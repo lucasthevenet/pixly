@@ -1,10 +1,11 @@
 import resize, { initResize } from "@jsquash/resize";
-import type { ImageData, ResizeOptions } from "../types";
+import type { OperationFunction, ResizeOptions } from "../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
 } from "../utils/environment";
 import { getFrameDimensions } from "../utils/sizing";
+import { createOperation } from "./custom";
 
 const RESIZE_WASM =
 	"node_modules/@jsquash/resize/lib/resize/pkg/squoosh_resize_bg.wasm";
@@ -30,7 +31,7 @@ async function initializeResize(): Promise<void> {
 	}
 }
 
-export const resizeImageWasm = async (
+const resizeImageWasm = async (
 	src: ImageData,
 	opts: ResizeOptions,
 ): Promise<ImageData> => {
@@ -79,3 +80,7 @@ export const resizeImageWasm = async (
 		colorSpace: "srgb",
 	};
 };
+
+export function resizeWasm(options: ResizeOptions): OperationFunction {
+	return createOperation(resizeImageWasm, options);
+}
