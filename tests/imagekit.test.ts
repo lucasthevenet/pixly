@@ -7,7 +7,7 @@ it("API surface - functional builder should allow chaining of transformation met
 
 	const chainedBuilder = await px
 		.decoder(px.auto())
-		.encoder(px.jpegEncoder())
+		.encoder(px.jpeg.encode())
 		.apply(px.flip("horizontal"))
 		.apply(
 			px.crop({
@@ -28,7 +28,10 @@ it("API surface - functional builder should allow chaining of transformation met
 it("API surface - functional builder should accept OutputOptions in output methods", async () => {
 	const input = await getTestImage("small");
 
-	const result = await px.encoder(px.webp()).decoder(px.auto()).process(input);
+	const result = await px
+		.encoder(px.webp.encode())
+		.decoder(px.auto())
+		.process(input);
 	expect(result.toBuffer()).toBeInstanceOf(Uint8Array);
 
 	expect(result.toDataURL()).toBeTypeOf("string");
@@ -41,7 +44,7 @@ it("Functional builder advanced - should support complex transformation chains",
 
 	const chainedBuilder = await px
 		.decoder(px.auto())
-		.encoder(px.jpegEncoder())
+		.encoder(px.jpeg.encode())
 		.apply(
 			px.resize({
 				width: 400,

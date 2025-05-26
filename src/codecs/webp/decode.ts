@@ -2,11 +2,11 @@
  * WebP decoder for decoding WebP images
  */
 
-import type { Decoder } from "../types";
+import type { Decoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let webpDecodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeDecoder() {
 	webpDecodeInitialized = true;
 }
 
-export function webpDecoder(): Decoder {
+export function decode(): Decoder {
 	return async (buffer) => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/webp/decode");

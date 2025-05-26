@@ -2,11 +2,11 @@
  * AVIF decoder for decoding AVIF images
  */
 
-import type { Decoder } from "../types";
+import type { Decoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let avifDecodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeDecoder() {
 	avifDecodeInitialized = true;
 }
 
-export function avif(): Decoder {
+export function decode(): Decoder {
 	return async (buffer) => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/avif/decode");

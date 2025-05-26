@@ -2,11 +2,11 @@
  * QOI decoder for decoding QOI images
  */
 
-import type { Decoder } from "../types";
+import type { Decoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let qoiDecodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeDecoder() {
 	qoiDecodeInitialized = true;
 }
 
-export function qoi(): Decoder {
+export function decode(): Decoder {
 	return async (buffer) => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/qoi/decode");

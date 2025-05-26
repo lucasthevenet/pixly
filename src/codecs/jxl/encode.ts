@@ -3,11 +3,11 @@
  */
 
 import type { EncodeOptions } from "@jsquash/jxl/meta";
-import type { Encoder } from "../types";
+import type { Encoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let jxlEncodeInitialized = false;
 
@@ -31,7 +31,7 @@ async function initializeEncoder() {
 	jxlEncodeInitialized = true;
 }
 
-export function jxlEncoder(options?: Partial<EncodeOptions>): Encoder {
+export function encode(options?: Partial<EncodeOptions>): Encoder {
 	return async (image: ImageData) => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/jxl/encode");

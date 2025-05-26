@@ -2,11 +2,11 @@
  * PNG decoder for decoding PNG images
  */
 
-import type { Decoder } from "../types";
+import type { Decoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let pngDecodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeDecoder() {
 	pngDecodeInitialized = true;
 }
 
-export function png(): Decoder {
+export function decode(): Decoder {
 	return async (buffer) => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/png/decode");

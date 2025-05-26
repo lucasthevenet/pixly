@@ -1,6 +1,5 @@
 export * from "./operations";
-export * from "./encode";
-export * from "./decode";
+export * from "./codecs";
 
 export type { ChannelOptions } from "./operations/adjust-channels";
 export type { GrayscaleOptions } from "./operations/grayscale";

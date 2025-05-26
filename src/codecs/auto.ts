@@ -11,29 +11,29 @@ export function auto(): Decoder {
 		const format = getFormatFromMagicBytes(magic);
 
 		switch (format) {
-			case "image/png": {
-				const { png } = await import("./png");
-				return png()(buffer);
+			case "image/avif": {
+				const { decode } = await import("./avif/decode");
+				return decode()(buffer);
 			}
 			case "image/jpeg": {
-				const { jpeg } = await import("./jpeg");
-				return jpeg()(buffer);
-			}
-			case "image/webp": {
-				const { webpDecoder } = await import("./webp");
-				return webpDecoder()(buffer);
-			}
-			case "image/avif": {
-				const { avif } = await import("./avif");
-				return avif()(buffer);
+				const { decode } = await import("./jpeg/decode");
+				return decode()(buffer);
 			}
 			case "image/jxl": {
-				const { jxl } = await import("./jxl");
-				return jxl()(buffer);
+				const { decode } = await import("./jxl/decode");
+				return decode()(buffer);
+			}
+			case "image/png": {
+				const { decode } = await import("./png/decode");
+				return decode()(buffer);
 			}
 			case "image/qoi": {
-				const { qoi } = await import("./qoi");
-				return qoi()(buffer);
+				const { decode } = await import("./qoi/decode");
+				return decode()(buffer);
+			}
+			case "image/webp": {
+				const { decode } = await import("./webp/decode");
+				return decode()(buffer);
 			}
 			default:
 				throw new Error(`Unsupported format: ${format}`);

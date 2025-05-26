@@ -3,11 +3,11 @@
  */
 
 import type { DecodeOptions } from "@jsquash/jpeg/meta";
-import type { Decoder } from "../types";
+import type { Decoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let jpegDecodeInitialized = false;
 
@@ -32,7 +32,7 @@ async function initializeDecoder() {
 	jpegDecodeInitialized = true;
 }
 
-export function jpeg(options?: Partial<DecodeOptions>): Decoder {
+export function decode(options?: Partial<DecodeOptions>): Decoder {
 	return async (buffer: ArrayBuffer) => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/jpeg/decode");

@@ -3,11 +3,11 @@
  */
 
 import type { EncodeOptions } from "@jsquash/webp/meta";
-import type { Encoder } from "../types";
+import type { Encoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let webpEncodeInitialized = false;
 
@@ -31,7 +31,7 @@ async function initializeEncoder() {
 	webpEncodeInitialized = true;
 }
 
-export function webp(options?: Partial<EncodeOptions>): Encoder {
+export function encode(options?: Partial<EncodeOptions>): Encoder {
 	return async (image) => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/webp/encode");

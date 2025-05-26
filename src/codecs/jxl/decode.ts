@@ -2,11 +2,11 @@
  * JXL decoder for decoding JXL images
  */
 
-import type { Decoder } from "../types";
+import type { Decoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let jxlDecodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeDecoder() {
 	jxlDecodeInitialized = true;
 }
 
-export function jxl(): Decoder {
+export function decode(): Decoder {
 	return async (buffer: ArrayBuffer) => {
 		await initializeDecoder();
 		const { default: decode } = await import("@jsquash/jxl/decode");

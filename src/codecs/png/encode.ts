@@ -2,11 +2,11 @@
  * PNG encoder for encoding PNG images
  */
 
-import type { Encoder } from "../types";
+import type { Encoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let pngEncodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeEncoder() {
 	pngEncodeInitialized = true;
 }
 
-export function pngEncoder(): Encoder {
+export function encode(): Encoder {
 	return async (image: ImageData) => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/png/encode");

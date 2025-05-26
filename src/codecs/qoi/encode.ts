@@ -2,11 +2,11 @@
  * QOI encoder for encoding QOI images
  */
 
-import type { Encoder } from "../types";
+import type { Encoder } from "../../types";
 import {
 	isRunningInCloudFlareWorkers,
 	isRunningInNode,
-} from "../utils/environment";
+} from "../../utils/environment";
 
 let qoiEncodeInitialized = false;
 
@@ -30,7 +30,7 @@ async function initializeEncoder() {
 	qoiEncodeInitialized = true;
 }
 
-export function qoiEncoder(): Encoder {
+export function encode(): Encoder {
 	return async (image) => {
 		await initializeEncoder();
 		const { default: encode } = await import("@jsquash/qoi/encode");
