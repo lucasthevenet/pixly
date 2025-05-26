@@ -146,7 +146,6 @@ const blob = result.toBlob();
 ## Project Status Board
 
 ### TODO
-- [ ] Task 3: Implement core builder class
 - [ ] Task 4: Implement decoder/encoder methods
 - [ ] Task 5: Implement preset system
 - [ ] Task 6: Implement process method and result object
@@ -156,18 +155,18 @@ const blob = result.toBlob();
 - [ ] Task 10: Performance testing and optimization
 
 ### In Progress
-- [ ] Task 3: Implement core builder class
 
 ### Completed
 - [x] Task 1: Create feature branch (feat/composable-api-redesign)
 - [x] Task 2: Design new type definitions
+- [x] Task 3: Implement core builder class
 
 ### Blocked
 
 ## Current Status / Progress Tracking
-- **Status**: Task 2 completed, beginning Task 3
-- **Next Step**: Implement core builder class with basic structure
-- **Last Updated**: Task 2 completed - comprehensive type definitions created
+- **Status**: Task 3 completed, moving to Task 4
+- **Next Step**: Implement decoder/encoder methods (full integration and advanced options)
+- **Last Updated**: Task 3 completed - `ImageBuilder` implemented and tested
 
 ## Executor's Feedback or Assistance Requests
 
@@ -177,6 +176,18 @@ const blob = result.toBlob();
 
 ### Task 2 Completion Report
 - ✅ **Completed**: Separated codec architecture for optimal tree-shaking
+
+### Task 3 Completion Report
+- ✅ **Completed**: Core `ImageBuilder` class with immutable chaining
+- **Features Implemented**:
+  - Methods `.apply()`, `.decoder()`, `.encoder()`, `.preset()`, and `.process()` (stub).
+  - Immutable builder: every change creates a new instance with updated state.
+  - Operations chaining is fully supported for arbitrary-length pipelines.
+  - Unit-tested with Jest/Vitest for builder state, chaining, preset, and error handling.
+  - Polyfills `ImageData` for Node/Edge testing environments.
+- **Test Results**: All new and existing tests passing. 18/18 tests for `ImageBuilder` verified functional correctness.
+- **Git Commit**: `eb73540` - "feat: add ImageBuilder composable core with immutable chaining and full basic tests"
+- **Notes**: Output encoding, full result object, and wiring for advanced codec options planned in the next task.
 - **Files Created**:
   - `src/composable-types.ts` - All interfaces and types for the new API
   - `src/helpers.ts` - Re-exports from individual codec files

@@ -1,4 +1,3 @@
-import type { ColorSpace } from "../types";
 import { isRunningInCloudFlareWorkers, isRunningInNode } from "./environment";
 
 if (isRunningInCloudFlareWorkers || isRunningInNode) {
@@ -8,7 +7,7 @@ if (isRunningInCloudFlareWorkers || isRunningInNode) {
 			readonly data: Uint8ClampedArray;
 			readonly width: number;
 			readonly height: number;
-			readonly colorSpace: ColorSpace;
+			readonly colorSpace: "display-p3" | "srgb";
 
 			constructor(sw: number, sh: number, settings?: ImageDataSettings);
 			constructor(

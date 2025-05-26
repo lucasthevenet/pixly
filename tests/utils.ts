@@ -32,20 +32,3 @@ export async function saveTestImage(
 		await fs.promises.writeFile(filename, buffer);
 	}
 }
-
-// Build complex operation chains
-const instagramPreset = pixly()
-	.apply(resize({ width: 1080, height: 1080, fit: "cover" }))
-	.apply(sharpen(1.1))
-	.apply(brightness(1.05))
-	.preset(); // Returns single composed operation
-
-// Everything goes through .apply() with single operations
-const result = await pixly()
-	.decoder(auto())
-	.apply(resize({ width: 100 })) // Built-in operation
-	.apply(instagramPreset.preset()) // Preset operation
-	.encoder(webp({ quality: 0.8 }))
-	.process(inputImage);
-
-const blob = result.toBlob();

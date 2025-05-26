@@ -6,16 +6,6 @@ export type MimeType =
 	| "image/jxl"
 	| "image/qoi";
 
-export type ColorSpace = "display-p3" | "srgb";
-
-export type ResponsiveSize = {
-	size: {
-		width: number;
-		height?: number;
-	};
-	maxWidth?: number;
-};
-
 /** RGBA hex values 0...255 */
 export type Color = [number, number, number, number];
 
@@ -46,41 +36,19 @@ export interface ResizeOptions {
 	background: Color;
 }
 
-export interface TransformOptions {
-	/** Width of resulting image. (optional, default null) */
-	width?: number | null;
-	/** Height of resulting image. If width is present, this takes priority. (optional, default null) */
-	height?: number | null;
-	/** The content type of the resulting image. (optional, default source type) */
-	contentType?: MimeType;
-	/** How the image should be resized to fit both provided dimensions. (optional, default 'contain') */
-	fit?: ImageFit;
-	/** Position to use when fit is cover or contain. (optional, default 'center') */
-	position?: ImagePosition | string | number;
-	/** Background color of resulting image. (optional, default [0x00, 0x00, 0x00, 0x00]) */
-	background?: Color;
-	/** Quality, integer 1-100. (optional, default 80) */
-	quality?: number;
-	/** zlib compression level, 0-9. (optional, default 9) */
-	compressionLevel?: number;
-	/** Number of animation iterations, use 0 for infinite animation. (optional, default 0) */
-	loop?: number;
-	/** Delay between animation frames (in milliseconds). (optional, default 100) */
-	delay?: number;
-	/** The number of pixels to blur the image by. (optional, default null) */
-	blurRadius?: number | null;
-	/** The number of degrees to rotate the image by. (optional, default null) */
-	rotate?: number | null;
-}
+export type Decoder = (buffer: ArrayBuffer) => Promise<DecoderResult>;
 
-export type Decoder = (buffer: ArrayBuffer) => Promise<ImageData>;
+export type DecoderResult = {
+	format: MimeType;
+	data: ImageData;
+};
 
-export type Encoder = (image: ImageData) => Promise<ArrayBuffer>;
+export type Encoder = (image: ImageData) => Promise<EncoderResult>;
 
-export interface ImageHandler {
-	decode: Decoder;
-	encode: Encoder;
-}
+export type EncoderResult = {
+	format: MimeType;
+	data: ArrayBuffer;
+};
 
 // Function-based operation types
 export type OperationFunction = (bitmap: ImageData) => Promise<ImageData>;
