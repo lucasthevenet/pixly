@@ -34,7 +34,7 @@ it("API surface - functional builder should accept OutputOptions in output metho
 		.process(input);
 	expect(result.toBuffer()).toBeInstanceOf(Uint8Array);
 
-	expect(result.toDataURL()).toBeTypeOf("string");
+	await expect(result.toDataURL()).resolves.toBeTypeOf("string");
 
 	expect(result.toBlob()).toBeInstanceOf(Blob);
 });
