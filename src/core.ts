@@ -79,7 +79,7 @@ export interface ProcessingResult {
 	/** Convert the processed image to a Blob */
 	toBlob(): Blob;
 	/** Convert the processed image to a data URL string */
-	toDataURL(): string;
+	toDataURL(): Promise<string>;
 }
 
 const createBuilder = <TBrand = {}>(
