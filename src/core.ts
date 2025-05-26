@@ -126,7 +126,7 @@ const createBuilder = <TBrand = {}>(
 
 				toDataURL: async () => {
 					const bytes = new Uint8Array(result.data);
-					const dataURL = await bytesToBase64DataUrl(bytes);
+					const dataURL = await bytesToBase64DataUrl(bytes, result.format);
 
 					return dataURL;
 				},
