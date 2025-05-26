@@ -1,6 +1,6 @@
 # Pixly
 
-A modern, functional image processing library for JavaScript and TypeScript that provides a clean, composable API for image transformations.
+A modern, composable image processing library for JavaScript and TypeScript that provides a type-safe builder API for image transformations.
 
 ## Installation
 
@@ -15,243 +15,269 @@ bun add pixly
 ## Quick Start
 
 ```typescript
-import { createImageProcessor, resize, toBuffer } from 'pixly';
+import { px } from 'pixly';
 
-// Load and process an image
-const processor = await createImageProcessor('path/to/image.jpg');
-const resized = await resize({ width: 300, height: 200 })(processor);
-const buffer = await toBuffer(resized, { format: 'image/png' });
+// Process an image with auto-detection
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode({ quality: 80 }))
+  .apply(px.resize({ width: 800 }))
+  .process('path/to/image.jpg');
+
+// Get the result as different formats
+const buffer = result.toBuffer();
+const blob = result.toBlob();
+const dataUrl = result.toDataURL();
 ```
 
 ## Core Concepts
 
-### Image Processors
+### Builder Pattern
 
-Image processors are the core building blocks that hold image data and configuration:
+Pixly uses a fluent builder pattern that guides you through the image processing pipeline:
+
+1. Set a decoder (to read the input format)
+2. Set an encoder (to write the output format)
+3. Apply transformations
+4. Process the input
 
 ```typescript
-import { createImageProcessor } from 'pixly';
-
-// From URL
-const processor = await createImageProcessor('https://example.com/image.jpg');
-
-// From File (browser)
-const processor = await createImageProcessor(file);
-
-// From Buffer
-const processor = await createImageProcessor(buffer);
-
-// From Blob
-const processor = await createImageProcessor(blob);
+const result = await px.decoder(px.jpeg.decode())     // 1. Decode JPEG
+  .encoder(px.png.encode())                           // 2. Encode to PNG
+  .apply(px.resize({ width: 500 }))                   // 3. Add operations
+  .apply(px.rotate(90))                                // 3. Chain more operations
+  .process(imageInput);                                // 4. Process
 ```
 
-## Functional Transformations
+### Type Safety
 
-Pixly provides functional transformation functions that can be composed:
+The API uses TypeScript to ensure correct usage:
+- `decoder()` and `encoder()` must be called before `process()`
+- Each can only be called once
+- Operations are type-checked
+
+## Input Types
+
+Pixly accepts various input types:
+
+```typescript
+// From URL
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .process('https://example.com/image.jpg');
+
+// From File (browser)
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .process(fileInput.files[0]);
+
+// From Buffer/ArrayBuffer
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .process(arrayBuffer);
+
+// From Blob
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .process(blob);
+```
+
+## Codecs
+
+### Available Codecs
+
+Each codec provides both `decode()` and `encode()` methods:
+
+- **PNG**: `px.png`
+- **JPEG**: `px.jpeg`
+- **WebP**: `px.webp`
+- **AVIF**: `px.avif`
+- **JPEG XL**: `px.jxl`
+- **QOI**: `px.qoi`
+- **Auto**: `px.auto` (decode only - auto-detects format)
+
+### Format Conversion
+
+```typescript
+// Convert PNG to JPEG
+const result = await px.decoder(px.png.decode())
+  .encoder(px.jpeg.encode({ quality: 90 }))
+  .process(pngImage);
+
+// Convert any format to WebP
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode({ quality: 85, lossless: false }))
+  .process(inputImage);
+```
+
+### Encoder Options
+
+Different codecs support different encoding options:
+
+```typescript
+// JPEG options
+px.jpeg.encode({ quality: 90 });
+
+// WebP options
+px.webp.encode({ quality: 85, lossless: false });
+
+// PNG options
+px.png.encode({ compressionLevel: 6 });
+```
+
+## Operations
+
+All operations are applied using the `apply()` method:
 
 ### Resize
 
 ```typescript
-import { resize } from 'pixly';
-
-const resized = await resize({
-  width: 800,
-  height: 600,
-  fit: 'cover', // 'cover', 'contain', 'fill', 'inside', 'outside'
-  position: 'center', // 'center', 'top', 'bottom', 'left', 'right'
-  background: [255, 255, 255, 0] // RGBA background color
-})(processor);
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .apply(px.resize({
+    width: 800,
+    height: 600,
+    fit: 'cover',        // 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
+    position: 'center',  // Position when cropping
+    background: [255, 255, 255, 0] // RGBA background color
+  }))
+  .process(input);
 ```
 
 ### Rotate
 
 ```typescript
-import { rotate } from 'pixly';
-
-const rotated = await rotate(90, [255, 255, 255, 255])(processor);
+const result = await px.decoder(px.auto())
+  .encoder(px.jpeg.encode())
+  .apply(px.rotate(90))  // Rotate 90 degrees clockwise
+  .process(input);
 ```
 
 ### Flip
 
 ```typescript
-import { flip } from 'pixly';
-
-const flipped = await flip('horizontal')(processor); // 'horizontal' or 'vertical'
+const result = await px.decoder(px.auto())
+  .encoder(px.png.encode())
+  .apply(px.flip('horizontal'))  // 'horizontal' or 'vertical'
+  .process(input);
 ```
 
 ### Crop
 
 ```typescript
-import { crop } from 'pixly';
-
-const cropped = await crop({
-  x: 100,
-  y: 100,
-  width: 400,
-  height: 300
-})(processor);
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .apply(px.crop({
+    x: 100,
+    y: 100,
+    width: 400,
+    height: 300
+  }))
+  .process(input);
 ```
 
-## Function Composition
-
-Combine multiple transformations using `pipe` or `compose`:
+### Blur
 
 ```typescript
-import { pipe, compose, resize, rotate, flip, toBuffer } from 'pixly';
-
-// Using pipe (left to right)
-const transformed = await pipe(
-  resize({ width: 400, height: 400 }),
-  rotate(45, [255, 255, 255, 255]),
-  flip('horizontal')
-)(processor);
-
-// Using compose (right to left)
-const transformed2 = await compose(
-  flip('horizontal'),
-  rotate(45, [255, 255, 255, 255]),
-  resize({ width: 400, height: 400 })
-)(processor);
+const result = await px.decoder(px.auto())
+  .encoder(px.jpeg.encode())
+  .apply(px.blur(5))  // Blur radius
+  .process(input);
 ```
 
-## Pipeline System
-
-For more complex workflows, use the pipeline system:
+### Sharpen
 
 ```typescript
-import {
-  createPipeline,
-  addResize,
-  addRotate,
-  addFlip,
-  processPipeline
-} from 'pixly';
-
-// Create a reusable pipeline
-const pipeline = createPipeline({ quality: 90 });
-const withResize = addResize(pipeline, { width: 800, height: 600 });
-const withRotate = addRotate(withResize, 90, [255, 255, 255, 255]);
-const withFlip = addFlip(withRotate, 'horizontal');
-
-// Process multiple images with the same pipeline
-const result1 = await processPipeline(withFlip, 'image1.jpg', { format: 'image/png' });
-const result2 = await processPipeline(withFlip, 'image2.jpg', { format: 'image/png' });
+const result = await px.decoder(px.auto())
+  .encoder(px.jpeg.encode())
+  .apply(px.sharpen(1.5))  // Sharpen amount
+  .process(input);
 ```
 
-## Preset Pipelines
-
-Pixly includes common preset pipelines:
+### Brightness
 
 ```typescript
-import {
-  createThumbnailPipeline,
-  createWebOptimizedPipeline,
-  createCompressionPipeline,
-  processPipelineToBlob
-} from 'pixly';
-
-// Create thumbnail
-const thumbPipeline = createThumbnailPipeline(150, { quality: 80 });
-const thumbnail = await processPipelineToBlob(thumbPipeline, input);
-
-// Web optimization
-const webPipeline = createWebOptimizedPipeline(1920, { quality: 85 });
-const webImage = await processPipelineToBlob(webPipeline, input);
-
-// Compression
-const compressPipeline = createCompressionPipeline(60);
-const compressed = await processPipelineToBlob(compressPipeline, input);
+const result = await px.decoder(px.auto())
+  .encoder(px.jpeg.encode())
+  .apply(px.brightness(1.2))  // 1.0 = no change, >1 = brighter, <1 = darker
+  .process(input);
 ```
 
-## Functional Builder
+## Chaining Operations
 
-For a fluent API experience:
+Operations can be chained to create complex transformations:
 
 ```typescript
-import { createFunctionalBuilder } from 'pixly';
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode({ quality: 80 }))
+  .apply(px.resize({ width: 1200, height: 800, fit: 'cover' }))
+  .apply(px.rotate(45))
+  .apply(px.brightness(1.1))
+  .apply(px.sharpen(1.2))
+  .apply(px.blur(0.5))
+  .process(input);
+```
 
-const builder = createFunctionalBuilder({ quality: 90 });
+## Presets
 
-// Chain operations
-const result = await builder
-  .resize({ width: 800, height: 600 })
-  .rotate(45, [255, 255, 255, 255])
-  .flip('horizontal')
-  .toBuffer(input, { format: 'image/png' });
+Create reusable operation chains:
 
-// Or get different outputs
-const blob = await builder
-  .resize({ width: 400, height: 400 })
-  .toBlob(input, { format: 'image/jpeg' });
+```typescript
+// Create a preset (without encoder/decoder)
+const thumbnailPreset = px
+  .apply(px.resize({ width: 150, height: 150, fit: 'cover' }))
+  .apply(px.sharpen(1.2))
+  .preset();
 
-const dataUrl = await builder
-  .resize({ width: 200, height: 200 })
-  .toDataURL(input, { format: 'image/webp' });
+const instagramPreset = px
+  .apply(px.resize({ width: 1080, height: 1080, fit: 'cover' }))
+  .apply(px.brightness(1.05))
+  .apply(px.sharpen(1.1))
+  .preset();
+
+// Use presets in different contexts
+const thumbnail = await px.decoder(px.auto())
+  .encoder(px.webp.encode({ quality: 80 }))
+  .apply(thumbnailPreset)
+  .process(input);
+
+const instagramPost = await px.decoder(px.auto())
+  .encoder(px.jpeg.encode({ quality: 90 }))
+  .apply(instagramPreset)
+  .process(input);
 ```
 
 ## Output Formats
 
-Convert processed images to different formats:
+The processing result provides multiple output methods:
 
 ```typescript
-import { toBuffer, toBlob, toDataURL } from 'pixly';
+const result = await px.decoder(px.auto())
+  .encoder(px.webp.encode())
+  .apply(px.resize({ width: 800 }))
+  .process(input);
 
-// To buffer
-const buffer = await toBuffer(processor, { format: 'image/png' });
+// Get as Uint8Array buffer
+const buffer = result.toBuffer();
 
-// To blob
-const blob = await toBlob(processor, { format: 'image/jpeg', quality: 80 });
+// Get as Blob (useful in browsers)
+const blob = result.toBlob();
 
-// To data URL
-const dataUrl = await toDataURL(processor, { format: 'image/webp' });
-```
-
-## Supported Formats
-
-- **PNG**: `image/png`
-- **JPEG**: `image/jpeg`
-- **WebP**: `image/webp`
-- **AVIF**: `image/avif`
-- **QOI**: `image/qoi`
-- **JPEG XL**: `image/jxl`
-
-## Configuration Options
-
-### Processing Config
-
-```typescript
-interface ProcessingConfig {
-  decoder?: "auto" | MimeType; // Auto-detect or force specific decoder
-  encoder?: MimeType;          // Output format
-  quality?: number;            // 0-100 for lossy formats
-  preserveMetadata?: boolean;  // Keep image metadata
-}
-```
-
-### Output Options
-
-```typescript
-interface OutputOptions {
-  format: MimeType;     // Required output format
-  quality?: number;     // 0-100 for lossy formats
-  width?: number;       // Override width
-  height?: number;      // Override height
-}
+// Get as data URL (base64 encoded)
+const dataUrl = result.toDataURL();
 ```
 
 ## Error Handling
 
-Pixly gracefully handles errors and provides fallbacks:
+Pixly provides clear error messages for common issues:
 
 ```typescript
 try {
-  const processor = await createImageProcessor('invalid-image.jpg');
-  // processor.bitmap will be null for invalid images
-  if (!processor.bitmap) {
-    console.log('Failed to decode image');
-  }
+  // This will throw - decoder and encoder required
+  const result = await px
+    .apply(px.resize({ width: 100 }))
+    .process(input);
 } catch (error) {
-  console.error('Error processing image:', error);
+  console.error('Processing failed:', error.message);
 }
 ```
 
@@ -261,82 +287,106 @@ Pixly is written in TypeScript and provides full type safety:
 
 ```typescript
 import type {
-  ImageProcessor,
-  Pipeline,
-  OutputOptions,
-  ProcessingConfig,
+  ImageEditor,
+  ProcessingResult,
   ResizeOptions,
-  CropOptions
+  ImageInput
 } from 'pixly';
 ```
 
-## Browser and Node.js Support
-
-Pixly works in both browser and Node.js environments. The library automatically handles different input types and provides appropriate APIs for each environment.
-
-## Performance Tips
-
-1. **Reuse Pipelines**: Create pipelines once and reuse them for multiple images
-2. **Batch Processing**: Use pipelines for consistent transformations across multiple images
-3. **Format Selection**: Choose appropriate output formats (WebP for web, JPEG for photos, PNG for graphics)
-4. **Quality Settings**: Balance file size and quality based on your use case
-
 ## Examples
 
-### Creating Image Thumbnails
+### Creating Multiple Sizes
 
 ```typescript
-import { createThumbnailPipeline, processPipelineToBlob } from 'pixly';
+const sizes = [
+  { width: 150, name: 'thumbnail' },
+  { width: 800, name: 'medium' },
+  { width: 1920, name: 'large' }
+];
 
-const pipeline = createThumbnailPipeline(200, {
-  quality: 85,
-  fit: 'cover'
-});
+const results = await Promise.all(
+  sizes.map(async ({ width, name }) => {
+    const result = await px.decoder(px.auto())
+      .encoder(px.webp.encode({ quality: 85 }))
+      .apply(px.resize({ width }))
+      .process(originalImage);
 
-const thumbnails = await Promise.all(
-  imageFiles.map(file => processPipelineToBlob(pipeline, file))
-);
-```
-
-### Batch Image Optimization
-
-```typescript
-import { createWebOptimizedPipeline, processPipeline } from 'pixly';
-
-const pipeline = createWebOptimizedPipeline(1200, { quality: 80 });
-
-const optimizedImages = await Promise.all(
-  images.map(async (image) => {
-    const buffer = await processPipeline(pipeline, image, {
-      format: 'image/webp'
-    });
-    return new Blob([buffer], { type: 'image/webp' });
+    return {
+      name,
+      blob: result.toBlob()
+    };
   })
 );
 ```
 
-### Complex Image Processing
+### Batch Processing with Preset
 
 ```typescript
-import {
-  createImageProcessor,
-  pipe,
-  resize,
-  rotate,
-  crop,
-  toDataURL
-} from 'pixly';
+// Create a web optimization preset
+const webOptimized = px
+  .apply(px.resize({ width: 1920, height: 1080, fit: 'inside' }))
+  .apply(px.sharpen(1.1))
+  .preset();
 
-const processor = await createImageProcessor(imageFile);
-
-const result = await pipe(
-  crop({ x: 100, y: 100, width: 800, height: 600 }),
-  resize({ width: 400, height: 300, fit: 'cover' }),
-  rotate(15, [255, 255, 255, 255])
-)(processor);
-
-const dataUrl = await toDataURL(result, { format: 'image/png' });
+// Apply to multiple images
+const processedImages = await Promise.all(
+  imageFiles.map(file =>
+    px.decoder(px.auto())
+      .encoder(px.webp.encode({ quality: 85 }))
+      .apply(webOptimized)
+      .process(file)
+  )
+);
 ```
+
+### Format Conversion Pipeline
+
+```typescript
+// Convert all images to modern formats
+async function modernizeImage(input: ImageInput) {
+  // Try AVIF first (best compression)
+  try {
+    return await px.decoder(px.auto())
+      .encoder(px.avif.encode({ quality: 80 }))
+      .process(input);
+  } catch {
+    // Fall back to WebP
+    return await px.decoder(px.auto())
+      .encoder(px.webp.encode({ quality: 85 }))
+      .process(input);
+  }
+}
+```
+
+### Profile Picture Generator
+
+```typescript
+const profilePicturePreset = px
+  .apply(px.resize({ width: 400, height: 400, fit: 'cover' }))
+  .apply(px.sharpen(1.2))
+  .preset();
+
+async function generateProfilePicture(file: File) {
+  const result = await px.decoder(px.auto())
+    .encoder(px.jpeg.encode({ quality: 90 }))
+    .apply(profilePicturePreset)
+    .process(file);
+
+  return result.toBlob();
+}
+```
+
+## Browser and Node.js Support
+
+Pixly works in both browser and Node.js environments, automatically handling environment-specific features.
+
+## Performance Tips
+
+1. **Reuse Presets**: Create presets once and reuse them for consistent transformations
+2. **Choose Appropriate Formats**: Use WebP or AVIF for smaller file sizes, JPEG for photos, PNG for images with transparency
+3. **Optimize Quality Settings**: Balance quality and file size based on your use case
+4. **Process in Parallel**: Use `Promise.all()` for batch processing
 
 ## License
 
