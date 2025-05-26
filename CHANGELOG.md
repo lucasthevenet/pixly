@@ -1,5 +1,11 @@
 # pixly
 
+## 1.0.1
+
+### Patch Changes
+
+- 3bbdd2a: fixed toDataURL return type
+
 ## 1.0.0
 
 ### Major Changes

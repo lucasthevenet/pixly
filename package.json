@@ -1,6 +1,6 @@
 {
 	"name": "pixly",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"type": "module",
 	"sideEffects": ["src/utils/polyfill.ts", "dist/utils/polyfill.js"],
 	"files": ["dist"],
