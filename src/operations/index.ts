@@ -17,6 +17,7 @@ export { tint } from "./tint";
 export { sharpen } from "./sharpen";
 export { pixelate } from "./pixelate";
 export { resize } from "./resize";
+export { resizeWasm } from "./resize-wasm";
 export { rotate } from "./rotate";
 export { flip } from "./flip";
 export { crop } from "./crop";
